@@ -1,10 +1,10 @@
 # 🌐 Deployment Health Endpoints
 
 | Type                   | Path                                                  | Method | Description                                   |
-| ---------------------- | ----------------------------------------------------- | ------ | --------------------------------------------- | --- |
+| ---------------------- | ----------------------------------------------------- | ------ | --------------------------------------------- |
 | **Health (readiness)** | `<https://{service-name}.example.com/health/readyz>`  | `GET`  | Basic readiness probe for deployment.         |
 | **Health (detailed)**  | `<https://{service-name}.example.com/detail/readyz>`  | `GET`  | Extended health check including dependencies. |
-| **Health (metrics)**   | `<https://{service-name}.example.com/detail/metrics>` | `GET`  | Prometheus Client                             | .   |
+| **Health (metrics)**   | `<https://{service-name}.example.com/detail/metrics>` | `GET`  | Prometheus Client                             |
 
 > 🧩 **Note:** Replace `{service-name}` with your actual service name (e.g. `api`, `webhook`,)
 
