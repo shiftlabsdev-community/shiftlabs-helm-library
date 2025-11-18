@@ -478,7 +478,18 @@ networkPolicy:
 
 ### Security Context
 
-The chart includes production-ready security contexts by default:
+By default, the chart runs with minimal security constraints for maximum compatibility. You can harden security as needed:
+
+#### Default (Maximum Compatibility)
+
+```yaml
+podSecurityContext: {}
+securityContext: {}
+# Runs as root user (UID 0) with full privileges
+# Compatible with most container images
+```
+
+#### Recommended Security Hardening (Non-Root User)
 
 ```yaml
 podSecurityContext:
@@ -496,6 +507,23 @@ securityContext:
   capabilities:
     drop:
       - ALL
+```
+
+**Note:** When using `readOnlyRootFilesystem: true`, some applications may need writable directories. Use emptyDir volumes for those:
+
+```yaml
+# In your values file
+extraVolumes:
+  - name: tmp
+    emptyDir: {}
+  - name: cache
+    emptyDir: {}
+
+extraVolumeMounts:
+  - name: tmp
+    mountPath: /tmp
+  - name: cache
+    mountPath: /var/cache
 ```
 
 ## Upgrading to 2.0.0
