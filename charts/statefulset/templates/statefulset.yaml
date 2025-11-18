@@ -1,0 +1,166 @@
+{{- $fullName := include "statefulset.fullname" . -}}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "statefulset.fullname" . }}
+  labels:
+    {{- include "statefulset.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ .Values.statefulset.serviceName | default (include "statefulset.fullname" .) }}
+  replicas: {{ .Values.replicaCount }}
+  podManagementPolicy: {{ .Values.statefulset.podManagementPolicy }}
+  updateStrategy:
+    type: {{ .Values.statefulset.updateStrategy.type }}
+    {{- if eq .Values.statefulset.updateStrategy.type "RollingUpdate" }}
+    rollingUpdate:
+      partition: {{ .Values.statefulset.updateStrategy.rollingUpdate.partition }}
+    {{- end }}
+  selector:
+    matchLabels:
+      {{- include "statefulset.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "statefulset.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "statefulset.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if .Values.initContainers.enabled }}
+      initContainers:
+        {{- range .Values.initContainers.containers }}
+        - name: {{ .name }}
+          image: {{ .image }}
+          {{- if .command }}
+          command: {{ .command | toJson }}
+          {{- end }}
+          {{- if .args }}
+          args: {{ .args | toJson }}
+          {{- end }}
+          {{- if .env }}
+          env:
+            {{- toYaml .env | nindent 12 }}
+          {{- end }}
+          {{- if .volumeMounts }}
+          volumeMounts:
+            {{- toYaml .volumeMounts | nindent 12 }}
+          {{- end }}
+        {{- end }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if or .Values.env .Values.configmap.enabled .Values.ExternalSecret.enabled }}
+          {{- if .Values.env }}
+          env:
+            {{- toYaml .Values.env | nindent 12 }}
+          {{- end }}
+          envFrom:
+          {{- if .Values.configmap.enabled }}
+          - configMapRef:
+              name: {{ include "statefulset.fullname" . }}
+          {{- end }}
+          {{- if .Values.ExternalSecret.enabled }}
+          - secretRef:
+              name: {{ include "statefulset.fullname" . }}
+          {{- end }}
+          {{- end }}
+          {{- if or (and .Values.configmap.enabled .Values.configmap.fileData) .Values.persistence.enabled }}
+          volumeMounts:
+          {{- if .Values.configmap.enabled }}
+          {{- if .Values.configmap.fileData }}
+          {{- range .Values.configmap.fileData }}
+          - name: custom-config-volume-{{ .fileName | replace ".yaml" "" | replace ".yml" "" | replace ".json" "" | replace ".conf" "" }}
+            mountPath: {{ .mountPath }}/{{ .fileName }}
+            subPath: {{ .fileName }}
+          {{- end }}
+          {{- end }}
+          {{- end }}
+          {{- if .Values.persistence.enabled }}
+          - name: data
+            mountPath: {{ .Values.persistence.mountPath }}
+          {{- end }}
+          {{- range .Values.persistence.volumeClaimTemplates }}
+          - name: {{ .name }}
+            mountPath: {{ .mountPath | default (printf "/%s" .name) }}
+          {{- end }}
+          {{- end }}
+          ports:
+            {{- range .Values.service.ports }}
+            - name: {{ .name }}
+              containerPort: {{ .targetPort }}
+              protocol: {{ .protocol }}
+            {{- end }}
+          {{- with .Values.postStart }}
+          lifecycle:
+            postStart:
+              {{- toYaml . | nindent 14 }}
+          {{- end }}
+          {{- include "statefulset.probe" (dict "probe" .Values.probes.startup "probeType" "startup") | nindent 10 }}
+          {{- include "statefulset.probe" (dict "probe" .Values.probes.liveness "probeType" "liveness") | nindent 10 }}
+          {{- include "statefulset.probe" (dict "probe" .Values.probes.readiness "probeType" "readiness") | nindent 10 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- if .Values.configmap.enabled }}
+      {{- if .Values.configmap.fileData }}
+      volumes:
+      {{- range .Values.configmap.fileData }}
+      - name: custom-config-volume-{{ .fileName | replace ".yaml" "" | replace ".yml" "" | replace ".json" "" | replace ".conf" "" }}
+        configMap:
+          name: {{ $fullName }}
+          items:
+          - key: {{ .fileName }}
+            path: {{ .fileName }}
+      {{- end }}
+      {{- end }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  {{- if .Values.persistence.enabled }}
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes:
+        {{- toYaml .Values.persistence.accessModes | nindent 8 }}
+      {{- if .Values.persistence.storageClass }}
+      storageClassName: {{ .Values.persistence.storageClass }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .Values.persistence.size }}
+  {{- range .Values.persistence.volumeClaimTemplates }}
+  - metadata:
+      name: {{ .name }}
+    spec:
+      accessModes:
+        {{- toYaml .accessModes | nindent 8 }}
+      {{- if .storageClass }}
+      storageClassName: {{ .storageClass }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .size }}
+  {{- end }}
+  {{- end }}

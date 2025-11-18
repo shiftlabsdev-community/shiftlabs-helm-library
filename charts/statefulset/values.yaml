@@ -1,0 +1,444 @@
+replicaCount: 1
+
+ExternalSecret:
+  enabled: false
+  type: hashicorp
+  # Supported types: hashicorp, aws, gcp, azure
+  kvPath:
+    - shiftlabsdev/dev/
+  name: vault-backend
+  # AWS Secrets Manager specific
+  region: us-east-1
+  # GCP Secret Manager specific
+  projectId: ""
+  # Azure Key Vault specific
+  vaultUrl: ""
+
+image:
+  repository: nginx
+  pullPolicy: Always
+  tag: ""
+
+imagePullSecrets:
+  - name: registry-secret
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # runAsNonRoot: true
+  # runAsUser: 1000
+  # fsGroup: 1000
+  # seccompProfile:
+  #   type: RuntimeDefault
+
+env: []
+  # - name: ENV_VAR_NAME
+  #   value: "value"
+  # - name: SECRET_ENV
+  #   valueFrom:
+  #     secretKeyRef:
+  #       name: my-secret
+  #       key: secret-key
+
+securityContext: {}
+  # allowPrivilegeEscalation: false
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+  # capabilities:
+  #   drop:
+  #     - ALL
+
+service:
+  type: ClusterIP
+  loadBalancerIP: ""
+  ports:
+    - port: 80
+      targetPort: 80
+      name: http
+      protocol: TCP
+    - port: 8080
+      targetPort: 8080
+      name: custom-port-1
+      protocol: TCP
+
+initContainers:
+  enabled: false
+  containers: []
+    # - name: "init-container"
+    #   image: "busybox"
+    #   command: ["sh"]
+    #   args: ['-c', 'echo "INIT1"']
+    # - name: "init-container2"
+    #   image: "busybox"
+    #   command: ["sh"]
+    #   args: ['-c', 'echo "INIT2"']
+
+postStart: []
+  # exec:
+  #   command: ["sh", "-c", "echo Hello from postStart"]
+
+ingress:
+  enabled: false
+  className: nginx
+
+  # Security Headers - Modern best practices
+  securityHeaders:
+    enabled: false
+    # HSTS (HTTP Strict Transport Security)
+    hsts: true
+    hstsMaxAge: 31536000  # 1 year
+    hstsIncludeSubdomains: true
+    hstsPreload: false
+    # Frame protection
+    frameOptions: "SAMEORIGIN"  # DENY, SAMEORIGIN, or ALLOW-FROM
+    # Content type sniffing protection
+    contentTypeNosniff: true
+    # XSS Protection
+    xssProtection: "1; mode=block"
+    # Referrer Policy
+    referrerPolicy: "strict-origin-when-cross-origin"
+    # Content Security Policy (CSP)
+    csp: ""
+      # Example: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"
+
+  # SSL/TLS Configuration
+  ssl:
+    redirect: true
+    protocols: "TLSv1.2 TLSv1.3"
+    ciphers: ""  # Leave empty to use nginx defaults (recommended)
+    # Custom: "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384"
+
+  # Performance & Reliability
+  proxy:
+    bodySize: "8m"
+    connectTimeout: 60
+    sendTimeout: 60
+    readTimeout: 60
+    bufferSize: "4k"
+    buffersNumber: 4
+    nextUpstream: "error timeout"
+    nextUpstreamTries: 3
+
+  # Rate Limiting
+  rateLimit:
+    enabled: false
+    rps: 100  # Requests per second per IP
+    burst: 200  # Burst capacity
+    key: "$binary_remote_addr"  # Rate limit key
+
+  # CORS (Cross-Origin Resource Sharing)
+  cors:
+    enabled: false
+    allowOrigin: "*"
+    allowMethods: "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+    allowHeaders: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization"
+    allowCredentials: true
+    maxAge: 3600
+
+  # Websocket Support
+  websocket:
+    enabled: false
+
+  # Canary Deployment (only enable when needed)
+  canary:
+    enabled: false
+    weight: 0
+
+  # Custom annotations (merged with generated ones)
+  extraAnnotations: {}
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # external-dns.alpha.kubernetes.io/hostname: "app.example.com"
+
+  # Extra labels
+  extraLabels: {}
+
+  hosts:
+    - host: fqdn.shiftlabs.dev
+      paths:
+        - path: /
+          pathType: Prefix
+
+  tls:
+    - secretName: shiftlabsdev-ssl-cert
+      hosts:
+        - fqdn.shiftlabs.dev
+
+ingressGRPC:
+  enabled: false
+  className: nginx
+
+  # GRPC-specific settings
+  grpc:
+    timeout: 300  # seconds
+    maxMessageSize: "4m"
+    # Keepalive settings
+    keepaliveTime: 30  # seconds
+    keepaliveTimeout: 10  # seconds
+    keepalivePermitWithoutCalls: false
+
+  # Security Headers (same as HTTP ingress)
+  securityHeaders:
+    enabled: false
+    hsts: true
+    hstsMaxAge: 31536000
+    hstsIncludeSubdomains: true
+    hstsPreload: false
+    frameOptions: "SAMEORIGIN"
+    contentTypeNosniff: true
+    xssProtection: "1; mode=block"
+    referrerPolicy: "strict-origin-when-cross-origin"
+    csp: ""
+
+  # SSL/TLS Configuration
+  ssl:
+    redirect: true
+    protocols: "TLSv1.2 TLSv1.3"
+    ciphers: ""
+
+  # Performance & Reliability
+  proxy:
+    bodySize: "8m"
+    connectTimeout: 60
+    sendTimeout: 60
+    readTimeout: 60
+    bufferSize: "4k"
+    buffersNumber: 4
+    nextUpstream: "error timeout"
+    nextUpstreamTries: 3
+
+  # Rate Limiting
+  rateLimit:
+    enabled: false
+    rps: 100
+    burst: 200
+    key: "$binary_remote_addr"
+
+  # Canary Deployment
+  canary:
+    enabled: false
+    weight: 0
+
+  # Custom annotations
+  extraAnnotations: {}
+
+  # Extra labels
+  extraLabels: {}
+
+  hosts:
+    - host: fqdn.shiftlabs.dev
+      paths:
+        - path: /
+          pathType: Prefix
+
+  tls:
+    - secretName: shiftlabsdev-ssl-cert
+      hosts:
+        - fqdn.shiftlabs.dev
+
+# Health Check Probes - Modern Best Practice Configuration
+probes:
+  # Startup Probe - For slow-starting applications
+  # Protects liveness probe from killing container during startup
+  startup:
+    enabled: true
+    type: http  # http, tcp, grpc, exec
+
+    # HTTP probe configuration
+    http:
+      path: /api/v1/health/healthz
+      port: http  # Can be port name or number
+      scheme: HTTP
+      httpHeaders: []
+        # - name: Authorization
+        #   value: Bearer token
+
+    # TCP probe configuration
+    tcp:
+      port: 8080
+
+    # GRPC probe configuration (Kubernetes 1.24+)
+    grpc:
+      port: 9090
+      service: ""  # Optional gRPC service name
+
+    # Exec probe configuration
+    exec:
+      command: []
+        # - cat
+        # - /tmp/healthy
+
+    # Timing configuration - Tolerant for slow startup
+    initialDelaySeconds: 0  # Kubernetes 1.20+ best practice
+    periodSeconds: 10  # Check every 10 seconds
+    timeoutSeconds: 1  # Request timeout
+    failureThreshold: 30  # 30 * 10 = 300s (5 minutes) max startup time
+    successThreshold: 1  # Success once = ready
+
+  # Liveness Probe - Is the application running?
+  # Should be conservative to avoid cascade failures
+  liveness:
+    enabled: true
+    type: http
+
+    http:
+      path: /api/v1/health/readyz
+      port: http
+      scheme: HTTP
+      httpHeaders: []
+
+    tcp:
+      port: 8080
+
+    grpc:
+      port: 9090
+      service: ""
+
+    exec:
+      command: []
+
+    # Timing configuration - Conservative
+    initialDelaySeconds: 0  # Startup probe handles initial delay
+    periodSeconds: 10  # Check every 10 seconds
+    timeoutSeconds: 1
+    failureThreshold: 3  # 3 failures = restart (30 seconds)
+    successThreshold: 1
+
+  # Readiness Probe - Is the application ready to serve traffic?
+  # Should be responsive for quick traffic routing
+  readiness:
+    enabled: true
+    type: http
+
+    http:
+      path: /api/v1/health/readyz
+      port: http
+      scheme: HTTP
+      httpHeaders: []
+
+    tcp:
+      port: 8080
+
+    grpc:
+      port: 9090
+      service: ""
+
+    exec:
+      command: []
+
+    # Timing configuration - Responsive
+    initialDelaySeconds: 0
+    periodSeconds: 5  # Check every 5 seconds (faster recovery)
+    timeoutSeconds: 1
+    failureThreshold: 3  # 3 failures = remove from service (15 seconds)
+    successThreshold: 1  # 1 success = add to service (5 seconds)
+
+resources:
+  limits:
+    cpu: 250m
+    memory: 250Mi
+  requests:
+    cpu: 250m
+    memory: 250Mi
+
+# StatefulSet specific configuration
+statefulset:
+  # Pod Management Policy: OrderedReady or Parallel
+  podManagementPolicy: OrderedReady
+
+  # Update strategy
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      partition: 0  # Update all pods (0 = update all, N = keep first N pods on old version)
+
+  # Service name for headless service (stable network identity)
+  # If empty, uses the fullname
+  serviceName: ""
+
+# Persistent Volume Claims
+# Each replica gets its own PVC
+persistence:
+  enabled: true
+
+  # Mount path for the default data volume
+  # Default: /data
+  mountPath: /data
+
+  # Storage class for dynamic provisioning
+  # If undefined, default storage class is used
+  storageClass: ""
+
+  # Access modes
+  accessModes:
+    - ReadWriteOnce
+
+  # Storage size
+  size: 10Gi
+
+  # Additional volume claim templates
+  # Useful for multiple volumes per pod
+  volumeClaimTemplates: []
+    # - name: logs
+    #   mountPath: /var/log/app
+    #   storageClass: fast-ssd
+    #   accessModes:
+    #     - ReadWriteOnce
+    #   size: 20Gi
+    # - name: cache
+    #   mountPath: /tmp/cache
+    #   storageClass: standard
+    #   accessModes:
+    #     - ReadWriteOnce
+    #   size: 5Gi
+
+networkPolicy:
+  enabled: false
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress: []
+    # - from:
+    #   - namespaceSelector:
+    #       matchLabels:
+    #         name: default
+    #   ports:
+    #   - protocol: TCP
+    #     port: 80
+  egress: []
+    # - to:
+    #   - namespaceSelector: {}
+    #   ports:
+    #   - protocol: TCP
+    #     port: 443
+
+configmap:
+  enabled: false
+  keyValues:
+    SPECIAL_KEY1: SPECIAL_KEY1
+    SPECIAL_KEY2: SPECIAL_KEY2
+  fileData:
+    - fileName: custom-config1.yaml
+      mountPath: /tmp
+      content: |-
+        key1: value1
+        key2: value2
+    - fileName: custom-config2.yaml
+      mountPath: /tmp
+      content: |-
+        key3: value3
+        key4: value4
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
