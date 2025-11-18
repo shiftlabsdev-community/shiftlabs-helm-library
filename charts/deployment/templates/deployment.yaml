@@ -1,5 +1,4 @@
 {{- $fullName := include "deployment.fullname" . -}}
-{{- if .Values.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -29,21 +28,38 @@ spec:
       serviceAccountName: {{ include "deployment.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
-      {{- if .Values.init.enabled }}
-      initContainers: 
-        {{- range .Values.extraInitContainers }}
-        - name: "{{ .name }}"
-          image: "{{ .image }}"
+      {{- if .Values.initContainers.enabled }}
+      initContainers:
+        {{- range .Values.initContainers.containers }}
+        - name: {{ .name }}
+          image: {{ .image }}
+          {{- if .command }}
           command: {{ .command | toJson }}
+          {{- end }}
+          {{- if .args }}
           args: {{ .args | toJson }}
+          {{- end }}
+          {{- if .env }}
+          env:
+            {{- toYaml .env | nindent 12 }}
+          {{- end }}
+          {{- if .volumeMounts }}
+          volumeMounts:
+            {{- toYaml .volumeMounts | nindent 12 }}
+          {{- end }}
         {{- end }}
-      {{- end }}  
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if or .Values.env .Values.configmap.enabled .Values.ExternalSecret.enabled }}
+          {{- if .Values.env }}
+          env:
+            {{- toYaml .Values.env | nindent 12 }}
+          {{- end }}
           envFrom:
           {{- if .Values.configmap.enabled }}
           - configMapRef:
@@ -53,98 +69,44 @@ spec:
           - secretRef:
               name: {{ include "deployment.fullname" . }}
           {{- end }}
-          # volumeMounts:
-          #   - mountPath: "/tmp/secret"
-          #     name: {{ include "deployment.fullname" . }}
-          #     readOnly: true
+          {{- end }}
           {{- if .Values.configmap.enabled }}
+          {{- if .Values.configmap.fileData }}
           volumeMounts:
           {{- range .Values.configmap.fileData }}
-          - name: custom-config-volume-{{ .fileName | replace ".yaml" "" }}
-            mountPath: {{ .mountPath }}
+          - name: custom-config-volume-{{ .fileName | replace ".yaml" "" | replace ".yml" "" | replace ".json" "" | replace ".conf" "" }}
+            mountPath: {{ .mountPath }}/{{ .fileName }}
+            subPath: {{ .fileName }}
+          {{- end }}
           {{- end }}
           {{- end }}
           ports:
             {{- range .Values.service.ports }}
             - name: {{ .name }}
-              containerPort: {{ .port }}
+              containerPort: {{ .targetPort }}
               protocol: {{ .protocol }}
             {{- end }}
           {{- with .Values.postStart }}
           lifecycle:
             postStart:
-              {{ . | toYaml | nindent 20 }}
+              {{- toYaml . | nindent 14 }}
           {{- end }}
-          {{- if .Values.http.enabled }}
-          startupProbe:
-            httpGet:
-              path: {{ .Values.http.startupProbe.path }}
-              port: {{ .Values.http.startupProbe.port }}
-            failureThreshold: {{ .Values.http.startupProbe.failureThreshold }}
-            initialDelaySeconds: {{ .Values.http.startupProbe.initialDelaySeconds }}              
-            periodSeconds: {{ .Values.http.startupProbe.periodSeconds }}
-            successThreshold: {{ .Values.http.startupProbe.successThreshold }}
-            timeoutSeconds: {{ .Values.http.startupProbe.timeoutSeconds }}
-          livenessProbe:
-            httpGet:
-              path: {{ .Values.http.livenessProbe.path }}
-              port: {{ .Values.http.livenessProbe.port }}
-            failureThreshold: {{ .Values.http.livenessProbe.failureThreshold }}
-            initialDelaySeconds: {{ .Values.http.livenessProbe.initialDelaySeconds }}                
-            periodSeconds: {{ .Values.http.livenessProbe.periodSeconds }}
-            successThreshold: {{ .Values.http.livenessProbe.successThreshold }}
-            timeoutSeconds: {{ .Values.http.livenessProbe.timeoutSeconds }}
-          readinessProbe:
-            httpGet:
-              path: {{ .Values.http.readinessProbe.path }}
-              port: {{ .Values.http.readinessProbe.port }}
-            failureThreshold: {{ .Values.http.readinessProbe.failureThreshold }}
-            initialDelaySeconds: {{ .Values.http.readinessProbe.initialDelaySeconds }}
-            periodSeconds: {{ .Values.http.readinessProbe.periodSeconds }}
-            successThreshold: {{ .Values.http.readinessProbe.successThreshold }}
-            timeoutSeconds: {{ .Values.http.readinessProbe.timeoutSeconds }}
-          {{- end }}  
-          {{- if .Values.tcp.enabled }}  
-          startupProbe:
-            tcpSocket:
-              port: {{ .Values.tcp.startupProbe.port }}
-            failureThreshold: {{ .Values.tcp.startupProbe.failureThreshold }}
-            initialDelaySeconds: {{ .Values.tcp.startupProbe.initialDelaySeconds }}              
-            periodSeconds: {{ .Values.tcp.startupProbe.periodSeconds }}
-            successThreshold: {{ .Values.tcp.startupProbe.successThreshold }}
-            timeoutSeconds: {{ .Values.tcp.startupProbe.timeoutSeconds }}
-          livenessProbe:
-            tcpSocket:
-              port: {{ .Values.tcp.livenessProbe.port }}
-            failureThreshold: {{ .Values.tcp.livenessProbe.failureThreshold }}
-            initialDelaySeconds: {{ .Values.tcp.livenessProbe.initialDelaySeconds }}                
-            periodSeconds: {{ .Values.tcp.livenessProbe.periodSeconds }}
-            successThreshold: {{ .Values.tcp.livenessProbe.successThreshold }}
-            timeoutSeconds: {{ .Values.tcp.livenessProbe.timeoutSeconds }}
-          readinessProbe:
-            tcpSocket:
-              port: {{ .Values.tcp.readinessProbe.port }}
-            failureThreshold: {{ .Values.tcp.readinessProbe.failureThreshold }}
-            initialDelaySeconds: {{ .Values.tcp.readinessProbe.initialDelaySeconds }}
-            periodSeconds: {{ .Values.tcp.readinessProbe.periodSeconds }}
-            successThreshold: {{ .Values.tcp.readinessProbe.successThreshold }}
-            timeoutSeconds: {{ .Values.tcp.readinessProbe.timeoutSeconds }}
-          {{- end }}         
+          {{- include "deployment.probe" (dict "probe" .Values.probes.startup "probeType" "startup") | nindent 10 }}
+          {{- include "deployment.probe" (dict "probe" .Values.probes.liveness "probeType" "liveness") | nindent 10 }}
+          {{- include "deployment.probe" (dict "probe" .Values.probes.readiness "probeType" "readiness") | nindent 10 }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-      # volumes:
-      # - name: {{ include "deployment.fullname" . }}
-      #   secret:
-      #     secretName: {{ include "deployment.fullname" . }}
       {{- if .Values.configmap.enabled }}
+      {{- if .Values.configmap.fileData }}
       volumes:
       {{- range .Values.configmap.fileData }}
-      - name: custom-config-volume-{{ .fileName | replace ".yaml" "" }}
+      - name: custom-config-volume-{{ .fileName | replace ".yaml" "" | replace ".yml" "" | replace ".json" "" | replace ".conf" "" }}
         configMap:
           name: {{ $fullName }}
           items:
           - key: {{ .fileName }}
             path: {{ .fileName }}
+      {{- end }}
       {{- end }}
       {{- end }}
       {{- with .Values.nodeSelector }}
@@ -159,4 +121,3 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-{{- end }}

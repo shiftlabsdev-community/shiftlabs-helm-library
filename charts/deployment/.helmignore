@@ -1,23 +1,92 @@
 # Patterns to ignore when building packages.
 # This supports shell glob matching, relative path matching, and
 # negation (prefixed with !). Only one pattern per line.
+
+# OS Files
 .DS_Store
-# Common VCS dirs
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# VCS Files
 .git/
 .gitignore
+.gitattributes
 .bzr/
 .bzrignore
 .hg/
 .hgignore
 .svn/
-# Common backup files
+
+# Editor and IDE Files
+.vscode/
+.idea/
+*.iml
 *.swp
+*.swo
+*.swn
 *.bak
 *.tmp
 *.orig
 *~
-# Various IDEs
 .project
-.idea/
+.classpath
+.settings/
 *.tmproj
-.vscode/
+.vs/
+*.code-workspace
+
+# Build and Dependency Directories
+node_modules/
+vendor/
+target/
+build/
+dist/
+*.pyc
+__pycache__/
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# Environment and Configuration Files
+.env
+.env.*
+.envrc
+*.local
+secrets.yaml
+secrets.yml
+*.secret
+credentials.json
+kubeconfig
+
+# CI/CD Files
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+azure-pipelines.yml
+Jenkinsfile
+.drone.yml
+
+# Documentation Drafts
+NOTES.md
+TODO.md
+DRAFT.md
+*.draft
+
+# Test and Development Files
+test-values.yaml
+dev-values.yaml
+local-values.yaml
+*.test.yaml
+ci/
+.helmignore.bak
+
+# Backup and Temporary Files
+*.backup
+*.old
+*.save
