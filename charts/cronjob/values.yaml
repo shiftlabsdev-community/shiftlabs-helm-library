@@ -55,6 +55,18 @@ securityContext: {}
   #   drop:
   #     - ALL
 
+# Service configuration (optional, usually not needed for CronJobs)
+# Only enable if you need to expose metrics or health endpoints
+service:
+  enabled: false
+  type: ClusterIP
+  loadBalancerIP: ""
+  ports:
+    - port: 8080
+      targetPort: 8080
+      name: metrics
+      protocol: TCP
+
 # CronJob specific configuration
 cronjob:
   # Cron schedule (required)

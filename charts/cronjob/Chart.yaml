@@ -2,7 +2,7 @@ apiVersion: v2
 name: cronjob
 description: Production-ready Helm chart for Kubernetes CronJobs with modern best practices, security hardening, and comprehensive configuration
 type: application
-version: 1.2.3
+version: 1.2.4
 appVersion: "1.0.0"
 keywords:
   - kubernetes
