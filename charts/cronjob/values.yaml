@@ -1,0 +1,204 @@
+ExternalSecret:
+  enabled: false
+  type: hashicorp
+  # Supported types: hashicorp, aws, gcp, azure
+  kvPath:
+    - shiftlabsdev/dev/
+  name: vault-backend
+  # AWS Secrets Manager specific
+  region: us-east-1
+  # GCP Secret Manager specific
+  projectId: ""
+  # Azure Key Vault specific
+  vaultUrl: ""
+
+image:
+  repository: busybox
+  pullPolicy: Always
+  tag: ""
+
+imagePullSecrets:
+  - name: registry-secret
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # runAsNonRoot: true
+  # runAsUser: 1000
+  # fsGroup: 1000
+  # seccompProfile:
+  #   type: RuntimeDefault
+
+env: []
+  # - name: ENV_VAR_NAME
+  #   value: "value"
+  # - name: SECRET_ENV
+  #   valueFrom:
+  #     secretKeyRef:
+  #       name: my-secret
+  #       key: secret-key
+
+securityContext: {}
+  # allowPrivilegeEscalation: false
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+  # capabilities:
+  #   drop:
+  #     - ALL
+
+# CronJob specific configuration
+cronjob:
+  # Cron schedule (required)
+  # Examples:
+  #   "*/5 * * * *"     - Every 5 minutes
+  #   "0 */2 * * *"     - Every 2 hours
+  #   "0 0 * * *"       - Daily at midnight
+  #   "0 0 * * 0"       - Weekly on Sunday
+  #   "0 0 1 * *"       - Monthly on the 1st
+  schedule: "0 0 * * *"
+
+  # Timezone for the cron schedule (Kubernetes 1.25+)
+  # If empty, uses the kube-controller-manager's timezone
+  timeZone: ""
+
+  # Concurrency policy: Allow, Forbid, or Replace
+  # - Allow: allows concurrent jobs
+  # - Forbid: forbids concurrent runs, skips new run if previous is still running
+  # - Replace: replaces the currently running job with a new one
+  concurrencyPolicy: Forbid
+
+  # Number of successful finished jobs to retain
+  successfulJobsHistoryLimit: 3
+
+  # Number of failed finished jobs to retain
+  failedJobsHistoryLimit: 1
+
+  # Deadline in seconds for starting the job if it misses scheduled time
+  # If undefined, jobs have no deadline
+  startingDeadlineSeconds: 200
+
+  # Suspend tells the controller to suspend subsequent executions
+  # Does not apply to already started executions
+  suspend: false
+
+# Job template configuration
+job:
+  # Restart policy: OnFailure or Never
+  # OnFailure: restart container on failure
+  # Never: never restart (will create new pod)
+  restartPolicy: OnFailure
+
+  # Number of retries before considering a Job as failed
+  backoffLimit: 3
+
+  # Number of completions (parallel jobs)
+  # If not set, defaults to 1
+  completions: 1
+
+  # Number of pods that can run in parallel
+  # If not set, defaults to 1
+  parallelism: 1
+
+  # Active deadline in seconds for the Job
+  # If the job runs longer than this, it will be terminated
+  activeDeadlineSeconds: 3600
+
+  # TTL for finished jobs (both successful and failed)
+  # After this time, the job will be automatically deleted
+  # If not set, jobs will not be automatically deleted
+  ttlSecondsAfterFinished: 86400  # 24 hours
+
+# Container command and args
+# Override the default image entrypoint
+command: []
+  # - "/bin/sh"
+  # - "-c"
+
+# Override the default image CMD
+args: []
+  # - "echo Hello from CronJob; date"
+
+initContainers:
+  enabled: false
+  containers: []
+    # - name: "init-container"
+    #   image: "busybox"
+    #   command: ["sh"]
+    #   args: ['-c', 'echo "INIT1"']
+
+postStart: []
+  # exec:
+  #   command: ["sh", "-c", "echo Hello from postStart"]
+
+resources:
+  limits:
+    cpu: 250m
+    memory: 250Mi
+  requests:
+    cpu: 250m
+    memory: 250Mi
+
+networkPolicy:
+  enabled: false
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress: []
+    # - from:
+    #   - namespaceSelector:
+    #       matchLabels:
+    #         name: default
+    #   ports:
+    #   - protocol: TCP
+    #     port: 80
+  egress: []
+    # - to:
+    #   - namespaceSelector: {}
+    #   ports:
+    #   - protocol: TCP
+    #     port: 443
+
+configmap:
+  enabled: false
+  keyValues:
+    SPECIAL_KEY1: SPECIAL_KEY1
+    SPECIAL_KEY2: SPECIAL_KEY2
+  fileData:
+    - fileName: custom-config1.yaml
+      mountPath: /tmp
+      content: |-
+        key1: value1
+        key2: value2
+    - fileName: custom-config2.yaml
+      mountPath: /tmp
+      content: |-
+        key3: value3
+        key4: value4
+
+# Volume mounts for the job container
+volumeMounts: []
+  # - name: data
+  #   mountPath: /data
+
+# Volumes for the job pod
+volumes: []
+  # - name: data
+  #   emptyDir: {}
+  # - name: config
+  #   configMap:
+  #     name: my-config
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

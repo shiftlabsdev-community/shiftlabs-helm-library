@@ -1,0 +1,158 @@
+{{- $fullName := include "cronjob.fullname" . -}}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "cronjob.fullname" . }}
+  labels:
+    {{- include "cronjob.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.cronjob.schedule | quote }}
+  {{- if .Values.cronjob.timeZone }}
+  timeZone: {{ .Values.cronjob.timeZone | quote }}
+  {{- end }}
+  concurrencyPolicy: {{ .Values.cronjob.concurrencyPolicy }}
+  successfulJobsHistoryLimit: {{ .Values.cronjob.successfulJobsHistoryLimit }}
+  failedJobsHistoryLimit: {{ .Values.cronjob.failedJobsHistoryLimit }}
+  {{- if .Values.cronjob.startingDeadlineSeconds }}
+  startingDeadlineSeconds: {{ .Values.cronjob.startingDeadlineSeconds }}
+  {{- end }}
+  suspend: {{ .Values.cronjob.suspend }}
+  jobTemplate:
+    metadata:
+      labels:
+        {{- include "cronjob.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- if .Values.job.backoffLimit }}
+      backoffLimit: {{ .Values.job.backoffLimit }}
+      {{- end }}
+      {{- if .Values.job.completions }}
+      completions: {{ .Values.job.completions }}
+      {{- end }}
+      {{- if .Values.job.parallelism }}
+      parallelism: {{ .Values.job.parallelism }}
+      {{- end }}
+      {{- if .Values.job.activeDeadlineSeconds }}
+      activeDeadlineSeconds: {{ .Values.job.activeDeadlineSeconds }}
+      {{- end }}
+      {{- if .Values.job.ttlSecondsAfterFinished }}
+      ttlSecondsAfterFinished: {{ .Values.job.ttlSecondsAfterFinished }}
+      {{- end }}
+      template:
+        metadata:
+          {{- with .Values.podAnnotations }}
+          annotations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          labels:
+            {{- include "cronjob.selectorLabels" . | nindent 12 }}
+        spec:
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          serviceAccountName: {{ include "cronjob.serviceAccountName" . }}
+          securityContext:
+            {{- toYaml .Values.podSecurityContext | nindent 12 }}
+          restartPolicy: {{ .Values.job.restartPolicy }}
+          {{- if .Values.initContainers.enabled }}
+          initContainers:
+            {{- range .Values.initContainers.containers }}
+            - name: {{ .name }}
+              image: {{ .image }}
+              {{- if .command }}
+              command: {{ .command | toJson }}
+              {{- end }}
+              {{- if .args }}
+              args: {{ .args | toJson }}
+              {{- end }}
+              {{- if .env }}
+              env:
+                {{- toYaml .env | nindent 16 }}
+              {{- end }}
+              {{- if .volumeMounts }}
+              volumeMounts:
+                {{- toYaml .volumeMounts | nindent 16 }}
+              {{- end }}
+            {{- end }}
+          {{- end }}
+          containers:
+            - name: {{ .Chart.Name }}
+              securityContext:
+                {{- toYaml .Values.securityContext | nindent 16 }}
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              {{- if .Values.command }}
+              command:
+                {{- toYaml .Values.command | nindent 16 }}
+              {{- end }}
+              {{- if .Values.args }}
+              args:
+                {{- toYaml .Values.args | nindent 16 }}
+              {{- end }}
+              {{- if or .Values.env .Values.configmap.enabled .Values.ExternalSecret.enabled }}
+              {{- if .Values.env }}
+              env:
+                {{- toYaml .Values.env | nindent 16 }}
+              {{- end }}
+              envFrom:
+              {{- if .Values.configmap.enabled }}
+              - configMapRef:
+                  name: {{ include "cronjob.fullname" . }}
+              {{- end }}
+              {{- if .Values.ExternalSecret.enabled }}
+              - secretRef:
+                  name: {{ include "cronjob.fullname" . }}
+              {{- end }}
+              {{- end }}
+              {{- if or .Values.volumeMounts (and .Values.configmap.enabled .Values.configmap.fileData) }}
+              volumeMounts:
+              {{- if .Values.configmap.enabled }}
+              {{- if .Values.configmap.fileData }}
+              {{- range .Values.configmap.fileData }}
+              - name: custom-config-volume-{{ .fileName | replace ".yaml" "" | replace ".yml" "" | replace ".json" "" | replace ".conf" "" }}
+                mountPath: {{ .mountPath }}/{{ .fileName }}
+                subPath: {{ .fileName }}
+              {{- end }}
+              {{- end }}
+              {{- end }}
+              {{- with .Values.volumeMounts }}
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
+              {{- end }}
+              {{- with .Values.postStart }}
+              lifecycle:
+                postStart:
+                  {{- toYaml . | nindent 18 }}
+              {{- end }}
+              resources:
+                {{- toYaml .Values.resources | nindent 16 }}
+          {{- if or .Values.volumes (and .Values.configmap.enabled .Values.configmap.fileData) }}
+          volumes:
+          {{- if .Values.configmap.enabled }}
+          {{- if .Values.configmap.fileData }}
+          {{- range .Values.configmap.fileData }}
+          - name: custom-config-volume-{{ .fileName | replace ".yaml" "" | replace ".yml" "" | replace ".json" "" | replace ".conf" "" }}
+            configMap:
+              name: {{ $fullName }}
+              items:
+              - key: {{ .fileName }}
+                path: {{ .fileName }}
+          {{- end }}
+          {{- end }}
+          {{- end }}
+          {{- with .Values.volumes }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- end }}
+          {{- with .Values.nodeSelector }}
+          nodeSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.affinity }}
+          affinity:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.tolerations }}
+          tolerations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
