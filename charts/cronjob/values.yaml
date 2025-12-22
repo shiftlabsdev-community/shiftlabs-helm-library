@@ -67,6 +67,31 @@ service:
       name: metrics
       protocol: TCP
 
+# Ingress configuration (optional, rarely needed for CronJobs)
+ingress:
+  enabled: false
+  className: nginx
+  annotations: {}
+  hosts:
+    - host: cronjob.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          port: 8080
+  tls: []
+
+ingressGRPC:
+  enabled: false
+  className: nginx
+  annotations: {}
+  hosts:
+    - host: cronjob-grpc.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          port: 50051
+  tls: []
+
 # CronJob specific configuration
 cronjob:
   # Cron schedule (required)
