@@ -1,0 +1,45 @@
+CronJob {{ include "cronjob.fullname" . }} has been deployed successfully!
+
+1. Get CronJob status:
+  kubectl get cronjob {{ include "cronjob.fullname" . }} -n {{ .Release.Namespace }}
+
+2. View CronJob schedule:
+  Schedule: {{ .Values.cronjob.schedule }}
+  {{- if .Values.cronjob.timeZone }}
+  Timezone: {{ .Values.cronjob.timeZone }}
+  {{- end }}
+  Concurrency Policy: {{ .Values.cronjob.concurrencyPolicy }}
+  {{- if .Values.cronjob.suspend }}
+  Status: SUSPENDED (will not create new jobs)
+  {{- else }}
+  Status: ACTIVE
+  {{- end }}
+
+3. List jobs created by this CronJob:
+  kubectl get jobs --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/instance={{ .Release.Name }}"
+
+4. View logs from the latest job:
+  kubectl logs --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/instance={{ .Release.Name }}" --tail=100
+
+5. Manually trigger a job:
+  kubectl create job --from=cronjob/{{ include "cronjob.fullname" . }} {{ include "cronjob.fullname" . }}-manual-$(date +%s) -n {{ .Release.Namespace }}
+
+6. Suspend/Resume CronJob:
+  # Suspend
+  kubectl patch cronjob {{ include "cronjob.fullname" . }} -n {{ .Release.Namespace }} -p '{"spec":{"suspend":true}}'
+
+  # Resume
+  kubectl patch cronjob {{ include "cronjob.fullname" . }} -n {{ .Release.Namespace }} -p '{"spec":{"suspend":false}}'
+
+{{- if .Values.ExternalSecret.enabled }}
+7. External Secret is enabled ({{ .Values.ExternalSecret.type }}):
+  - Secret store: {{ .Values.ExternalSecret.name }}
+  - Verify secret: kubectl get secret {{ include "cronjob.fullname" . }} -n {{ .Release.Namespace }}
+{{- end }}
+
+{{- if .Values.networkPolicy.enabled }}
+8. NetworkPolicy is enabled:
+  - Check network policies: kubectl get networkpolicy {{ include "cronjob.fullname" . }} -n {{ .Release.Namespace }}
+{{- end }}
+
+For more information, visit: https://github.com/shiftlabs/helm-library
