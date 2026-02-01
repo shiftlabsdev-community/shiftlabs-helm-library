@@ -163,7 +163,7 @@ ingressGRPC:
     keepaliveTimeout: 10
     keepalivePermitWithoutCalls: false
 
-  # Security Headers (same as HTTP ingress)
+  # Security Headers [HAProxy: ✅ | NGINX: ✅]
   securityHeaders:
     enabled: false
     hsts: true
@@ -176,39 +176,32 @@ ingressGRPC:
     referrerPolicy: "strict-origin-when-cross-origin"
     csp: ""
 
-  # SSL/TLS Configuration
   ssl:
-    redirect: true
-    protocols: "TLSv1.2 TLSv1.3"
-    ciphers: ""
+    redirect: true                          # [HAProxy: ✅ | NGINX: ✅]
+    protocols: "TLSv1.2 TLSv1.3"           # [HAProxy: ❌ ConfigMap | NGINX: ✅]
+    ciphers: ""                             # [HAProxy: ❌ ConfigMap | NGINX: ✅]
 
-  # Performance & Reliability
   proxy:
-    bodySize: "8m"
-    connectTimeout: 60
-    sendTimeout: 60
-    readTimeout: 60
-    bufferSize: "4k"
-    buffersNumber: 4
-    nextUpstream: "error timeout"
-    nextUpstreamTries: 3
+    bodySize: "8m"                          # [HAProxy: ❌ ConfigMap | NGINX: ✅]
+    connectTimeout: 60                      # [HAProxy: ✅ | NGINX: ✅]
+    sendTimeout: 60                         # [HAProxy: ✅ timeout-server | NGINX: ✅]
+    readTimeout: 60                         # [HAProxy: ✅ timeout-server | NGINX: ✅]
+    bufferSize: "4k"                        # [HAProxy: ❌ ConfigMap | NGINX: ✅]
+    buffersNumber: 4                        # [HAProxy: ❌ ConfigMap | NGINX: ✅]
+    nextUpstream: "error timeout"           # [HAProxy: ❌ ConfigMap | NGINX: ✅]
+    nextUpstreamTries: 3                    # [HAProxy: ❌ ConfigMap | NGINX: ✅]
 
-  # Rate Limiting
-  rateLimit:
+  rateLimit:                                # [HAProxy: ✅ | NGINX: ✅]
     enabled: false
     rps: 100
-    burst: 200
+    burst: 200                              # [HAProxy: ❌ | NGINX: ✅]
     key: "$binary_remote_addr"
 
-  # Canary Deployment (NGINX only)
-  canary:
+  canary:                                   # [HAProxy: ❌ | NGINX: ✅]
     enabled: false
     weight: 0
 
-  # Custom annotations
   extraAnnotations: {}
-
-  # Extra labels
   extraLabels: {}
 
   hosts:
