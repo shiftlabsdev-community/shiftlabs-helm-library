@@ -45,7 +45,20 @@
     "statefulset": {
       "type": "object",
       "properties": {
-        "podManagementPolicy": { "type": "string", "enum": ["OrderedReady", "Parallel"] }
+        "podManagementPolicy": { "type": "string", "enum": ["OrderedReady", "Parallel"] },
+        "serviceName": { "type": "string" },
+        "updateStrategy": {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string", "enum": ["RollingUpdate", "OnDelete"] },
+            "rollingUpdate": {
+              "type": "object",
+              "properties": {
+                "partition": { "type": "integer", "minimum": 0 }
+              }
+            }
+          }
+        }
       }
     },
     "persistence": {
@@ -53,11 +66,20 @@
       "properties": {
         "enabled": { "type": "boolean" },
         "storageClass": { "type": "string" },
+        "mountPath": { "type": "string" },
         "accessModes": {
           "type": "array",
           "items": { "type": "string", "enum": ["ReadWriteOnce", "ReadOnlyMany", "ReadWriteMany", "ReadWriteOncePod"] }
         },
-        "size": { "type": "string" }
+        "size": { "type": "string" },
+        "volumeClaimTemplates": { "type": "array" },
+        "persistentVolumeClaimRetentionPolicy": { "type": "object" },
+        "ordinals": {
+          "type": "object",
+          "properties": {
+            "start": { "type": "integer", "minimum": 0 }
+          }
+        }
       }
     },
     "podSecurityContext": { "type": "object" },
@@ -113,7 +135,99 @@
           "properties": { "enabled": { "type": "boolean" } }
         }
       }
-    }
+    },
+    "ingress": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "className": { "type": "string" },
+        "controllerType": { "type": "string", "enum": ["haproxy", "nginx"] },
+        "securityHeaders": {
+          "type": "object",
+          "properties": { "enabled": { "type": "boolean" } }
+        },
+        "ssl": { "type": "object" },
+        "proxy": { "type": "object" },
+        "rateLimit": {
+          "type": "object",
+          "properties": { "enabled": { "type": "boolean" } }
+        },
+        "cors": {
+          "type": "object",
+          "properties": { "enabled": { "type": "boolean" } }
+        },
+        "websocket": {
+          "type": "object",
+          "properties": { "enabled": { "type": "boolean" } }
+        },
+        "canary": {
+          "type": "object",
+          "properties": { "enabled": { "type": "boolean" } }
+        },
+        "extraAnnotations": { "type": "object" },
+        "extraLabels": { "type": "object" },
+        "hosts": { "type": "array" },
+        "tls": { "type": "array" }
+      }
+    },
+    "ingressGRPC": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "className": { "type": "string" },
+        "controllerType": { "type": "string", "enum": ["haproxy", "nginx"] },
+        "securityHeaders": {
+          "type": "object",
+          "properties": { "enabled": { "type": "boolean" } }
+        },
+        "ssl": { "type": "object" },
+        "proxy": { "type": "object" },
+        "extraAnnotations": { "type": "object" },
+        "extraLabels": { "type": "object" },
+        "hosts": { "type": "array" },
+        "tls": { "type": "array" }
+      }
+    },
+    "configmap": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "keyValues": { "type": "object" },
+        "fileData": { "type": "array" }
+      }
+    },
+    "ExternalSecret": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "type": { "type": "string", "enum": ["hashicorp", "aws", "gcp", "azure"] },
+        "kvPath": { "type": "array" },
+        "name": { "type": "string" },
+        "region": { "type": "string" },
+        "projectId": { "type": "string" },
+        "vaultUrl": { "type": "string" }
+      }
+    },
+    "initContainers": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "containers": { "type": "array" }
+      }
+    },
+    "env": { "type": "array" },
+    "imagePullSecrets": { "type": "array" },
+    "nameOverride": { "type": "string" },
+    "fullnameOverride": { "type": "string" },
+    "serviceAccount": {
+      "type": "object",
+      "properties": {
+        "create": { "type": "boolean" },
+        "annotations": { "type": "object" },
+        "name": { "type": "string" }
+      }
+    },
+    "podAnnotations": { "type": "object" }
   },
   "definitions": {
     "probe": {

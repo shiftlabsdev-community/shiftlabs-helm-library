@@ -1,3 +1,5 @@
+{{- $_ := required "image.repository is required" .Values.image.repository -}}
+{{- $_ := required "cronjob.schedule is required" .Values.cronjob.schedule -}}
 {{- $fullName := include "cronjob.fullname" . -}}
 apiVersion: batch/v1
 kind: CronJob
@@ -43,10 +45,13 @@ spec:
       {{- end }}
       template:
         metadata:
-          {{- with .Values.podAnnotations }}
           annotations:
+            {{- if .Values.configmap.enabled }}
+            checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+            {{- end }}
+            {{- with .Values.podAnnotations }}
             {{- toYaml . | nindent 12 }}
-          {{- end }}
+            {{- end }}
           labels:
             {{- include "cronjob.selectorLabels" . | nindent 12 }}
             {{- with .Values.podLabels }}
@@ -122,7 +127,7 @@ spec:
               args:
                 {{- toYaml .Values.args | nindent 16 }}
               {{- end }}
-              {{- if or .Values.env .Values.configmap.enabled .Values.ExternalSecret.enabled }}
+              {{- if or .Values.env .Values.configmap.enabled .Values.ExternalSecret.enabled .Values.extraEnvFrom }}
               {{- if .Values.env }}
               env:
                 {{- toYaml .Values.env | nindent 16 }}

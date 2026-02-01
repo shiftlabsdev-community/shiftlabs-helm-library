@@ -1,0 +1,17 @@
+suite: cronjob probe tests
+templates:
+  - templates/cronjob.yaml
+tests:
+  - it: should set command
+    set:
+      image.repository: myapp
+      cronjob:
+        schedule: "*/5 * * * *"
+      command:
+        - /bin/sh
+        - -c
+        - echo hello
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].command[0]
+          value: /bin/sh

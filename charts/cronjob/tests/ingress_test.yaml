@@ -1,0 +1,91 @@
+suite: ingress tests
+templates:
+  - templates/ingress-http.yaml
+tests:
+  - it: should not create ingress when disabled
+    set:
+      image.repository: myapp
+      cronjob:
+        schedule: "*/5 * * * *"
+      ingress:
+        enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should create ingress when enabled
+    set:
+      image.repository: myapp
+      cronjob:
+        schedule: "*/5 * * * *"
+      ingress:
+        enabled: true
+        controllerType: haproxy
+        hosts:
+          - host: example.com
+            paths:
+              - path: /
+                pathType: Prefix
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Ingress
+
+  - it: should set haproxy annotations
+    set:
+      image.repository: myapp
+      cronjob:
+        schedule: "*/5 * * * *"
+      ingress:
+        enabled: true
+        controllerType: haproxy
+        hosts:
+          - host: example.com
+            paths:
+              - path: /
+                pathType: Prefix
+    asserts:
+      - exists:
+          path: metadata.annotations
+
+  - it: should enable TLS
+    set:
+      image.repository: myapp
+      cronjob:
+        schedule: "*/5 * * * *"
+      ingress:
+        enabled: true
+        controllerType: haproxy
+        hosts:
+          - host: example.com
+            paths:
+              - path: /
+                pathType: Prefix
+        tls:
+          - secretName: tls-secret
+            hosts:
+              - example.com
+    asserts:
+      - isNotNull:
+          path: spec.tls
+
+  - it: should create grpc ingress when enabled
+    template: templates/ingress-grpc.yaml
+    set:
+      image.repository: myapp
+      cronjob:
+        schedule: "*/5 * * * *"
+      ingressGRPC:
+        enabled: true
+        controllerType: haproxy
+        hosts:
+          - host: grpc.example.com
+            paths:
+              - path: /
+                pathType: Prefix
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Ingress

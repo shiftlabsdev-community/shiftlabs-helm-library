@@ -1,0 +1,109 @@
+suite: probe tests
+templates:
+  - templates/daemonset.yaml
+tests:
+  - it: should configure http liveness probe
+    set:
+      image.repository: myapp
+      probes:
+        liveness:
+          enabled: true
+          type: http
+          http:
+            path: /healthz
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 1
+          failureThreshold: 3
+          successThreshold: 1
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].livenessProbe
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.path
+          value: /healthz
+
+  - it: should configure tcp readiness probe
+    set:
+      image.repository: myapp
+      probes:
+        readiness:
+          enabled: true
+          type: tcp
+          tcp:
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 1
+          failureThreshold: 3
+          successThreshold: 1
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].readinessProbe
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.tcpSocket.port
+          value: 8080
+
+  - it: should configure grpc probe
+    set:
+      image.repository: myapp
+      probes:
+        liveness:
+          enabled: true
+          type: grpc
+          grpc:
+            port: 50051
+          initialDelaySeconds: 0
+          periodSeconds: 10
+          timeoutSeconds: 1
+          failureThreshold: 3
+          successThreshold: 1
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].livenessProbe
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.grpc.port
+          value: 50051
+
+  - it: should configure exec probe
+    set:
+      image.repository: myapp
+      probes:
+        liveness:
+          enabled: true
+          type: exec
+          exec:
+            command:
+              - /bin/sh
+              - -c
+              - "echo healthy"
+          initialDelaySeconds: 0
+          periodSeconds: 10
+          timeoutSeconds: 1
+          failureThreshold: 3
+          successThreshold: 1
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].livenessProbe
+      - isNotNull:
+          path: spec.template.spec.containers[0].livenessProbe.exec
+
+  - it: should not set probe when disabled
+    set:
+      image.repository: myapp
+      probes:
+        liveness:
+          enabled: false
+        readiness:
+          enabled: false
+        startup:
+          enabled: false
+    asserts:
+      - isNull:
+          path: spec.template.spec.containers[0].livenessProbe
+      - isNull:
+          path: spec.template.spec.containers[0].readinessProbe
+      - isNull:
+          path: spec.template.spec.containers[0].startupProbe

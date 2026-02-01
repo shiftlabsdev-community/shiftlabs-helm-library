@@ -1,0 +1,54 @@
+suite: configmap tests
+templates:
+  - templates/configmap.yaml
+tests:
+  - it: should not create configmap when disabled
+    set:
+      image.repository: myapp
+      cronjob:
+        schedule: "*/5 * * * *"
+      configmap:
+        enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should create configmap with key values
+    set:
+      image.repository: myapp
+      cronjob:
+        schedule: "*/5 * * * *"
+      configmap:
+        enabled: true
+        keyValues:
+          APP_ENV: production
+          LOG_LEVEL: info
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: ConfigMap
+      - equal:
+          path: data.APP_ENV
+          value: production
+      - equal:
+          path: data.LOG_LEVEL
+          value: info
+
+  - it: should create configmap with file data
+    set:
+      image.repository: myapp
+      cronjob:
+        schedule: "*/5 * * * *"
+      configmap:
+        enabled: true
+        fileData:
+          - fileName: config.yaml
+            mountPath: /etc/config
+            content: |
+              key: value
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isNotNull:
+          path: data["config.yaml"]

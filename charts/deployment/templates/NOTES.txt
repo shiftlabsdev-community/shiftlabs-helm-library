@@ -51,4 +51,39 @@
   - Check network policies: kubectl get networkpolicy {{ include "deployment.fullname" . }} -n {{ .Release.Namespace }}
 {{- end }}
 
+{{- if .Values.ingressGRPC.enabled }}
+gRPC Ingress:
+{{- range $host := .Values.ingressGRPC.hosts }}
+  {{- range .paths }}
+  grpc{{ if $.Values.ingressGRPC.tls }}s{{ end }}://{{ $host.host }}{{ .path }}
+  {{- end }}
+{{- end }}
+  - Controller: {{ .Values.ingressGRPC.controllerType | default "haproxy" }}
+{{- end }}
+
+{{- if .Values.configmap.enabled }}
+ConfigMap:
+  - Name: {{ include "deployment.fullname" . }}
+  {{- if .Values.configmap.fileData }}
+  - Mounted files:
+  {{- range .Values.configmap.fileData }}
+    - {{ .mountPath }}/{{ .fileName }}
+  {{- end }}
+  {{- end }}
+{{- end }}
+
+{{- if .Values.ingress.enabled }}
+Ingress Controller: {{ .Values.ingress.controllerType | default "haproxy" }}
+{{- end }}
+
+{{- if or .Values.metrics.serviceMonitor.enabled .Values.metrics.podMonitor.enabled }}
+Metrics:
+  {{- if .Values.metrics.serviceMonitor.enabled }}
+  - ServiceMonitor: kubectl get servicemonitor {{ include "deployment.fullname" . }} -n {{ .Release.Namespace }}
+  {{- end }}
+  {{- if .Values.metrics.podMonitor.enabled }}
+  - PodMonitor: kubectl get podmonitor {{ include "deployment.fullname" . }} -n {{ .Release.Namespace }}
+  {{- end }}
+{{- end }}
+
 For more information, visit: https://github.com/shiftlabs/helm-library

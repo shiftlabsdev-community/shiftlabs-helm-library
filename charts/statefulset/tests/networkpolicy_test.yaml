@@ -1,0 +1,43 @@
+suite: network policy tests
+templates:
+  - templates/networkpolicy.yaml
+tests:
+  - it: should not create networkpolicy when disabled
+    set:
+      image.repository: myapp
+      networkPolicy:
+        enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should create networkpolicy when enabled
+    set:
+      image.repository: myapp
+      networkPolicy:
+        enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: NetworkPolicy
+
+  - it: should allow DNS when configured
+    set:
+      image.repository: myapp
+      networkPolicy:
+        enabled: true
+        allowDNS: true
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  - it: should set default deny
+    set:
+      image.repository: myapp
+      networkPolicy:
+        enabled: true
+        defaultDeny: true
+    asserts:
+      - hasDocuments:
+          count: 1

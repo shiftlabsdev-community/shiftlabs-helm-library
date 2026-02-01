@@ -1,0 +1,68 @@
+suite: basic statefulset tests
+templates:
+  - templates/statefulset.yaml
+tests:
+  - it: should set image repository and tag
+    set:
+      image:
+        repository: myapp
+        tag: "1.0.0"
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "myapp:1.0.0"
+
+  - it: should set resource limits
+    set:
+      image.repository: myapp
+      resources:
+        limits:
+          cpu: 500m
+          memory: 256Mi
+        requests:
+          cpu: 100m
+          memory: 128Mi
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].resources.limits.cpu
+          value: 500m
+
+  - it: should set environment variables
+    set:
+      image.repository: myapp
+      env:
+        - name: FOO
+          value: bar
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FOO
+            value: bar
+
+  - it: should add checksum annotation when configmap enabled
+    set:
+      image.repository: myapp
+      configmap:
+        enabled: true
+        keyValues:
+          KEY: value
+    asserts:
+      - isNotNull:
+          path: spec.template.metadata.annotations["checksum/config"]
+
+  - it: should set service port
+    template: templates/service.yaml
+    set:
+      image.repository: myapp
+      service:
+        type: ClusterIP
+        ports:
+          - port: 80
+            targetPort: 8080
+            name: http
+            protocol: TCP
+    asserts:
+      - equal:
+          path: spec.ports[0].port
+          value: 80

@@ -1,3 +1,4 @@
+{{- $_ := required "image.repository is required" .Values.image.repository -}}
 {{- $fullName := include "deployment.fullname" . -}}
 apiVersion: apps/v1
 kind: Deployment
@@ -25,10 +26,13 @@ spec:
       {{- include "deployment.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
       annotations:
+        {{- if .Values.configmap.enabled }}
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- end }}
+        {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- end }}
       labels:
         {{- include "deployment.selectorLabels" . | nindent 8 }}
         {{- with .Values.podLabels }}
@@ -95,7 +99,7 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- if or .Values.env .Values.configmap.enabled .Values.ExternalSecret.enabled }}
+          {{- if or .Values.env .Values.configmap.enabled .Values.ExternalSecret.enabled .Values.extraEnvFrom }}
           {{- if .Values.env }}
           env:
             {{- toYaml .Values.env | nindent 12 }}
