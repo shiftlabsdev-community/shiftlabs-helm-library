@@ -1,0 +1,2 @@
+{{- $_ := set .Values.verticalPodAutoscaler "targetKind" "DaemonSet" -}}
+{{- include "common.vpa" . }}

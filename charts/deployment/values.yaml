@@ -34,8 +34,6 @@ podAnnotations: {}
 
 podSecurityContext: {}
   # runAsNonRoot: true
-  # runAsUser: 1000
-  # fsGroup: 1000
   # seccompProfile:
   #   type: RuntimeDefault
 
@@ -52,7 +50,6 @@ securityContext: {}
   # allowPrivilegeEscalation: false
   # readOnlyRootFilesystem: true
   # runAsNonRoot: true
-  # runAsUser: 1000
   # capabilities:
   #   drop:
   #     - ALL
@@ -82,13 +79,10 @@ initContainers:
     #   command: ["sh"]
     #   args: ['-c', 'echo "INIT2"']
 
-postStart: []
-  # exec:
-  #   command: ["sh", "-c", "echo Hello from postStart"]
-
 ingress:
   enabled: false
-  className: nginx
+  className: haproxy
+  controllerType: haproxy  # haproxy or nginx — determines annotation format (independent of className)
 
   # Security Headers - Modern best practices
   securityHeaders:
@@ -114,19 +108,18 @@ ingress:
   ssl:
     redirect: true
     protocols: "TLSv1.2 TLSv1.3"
-    ciphers: ""  # Leave empty to use nginx defaults (recommended)
-    # Custom: "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384"
+    ciphers: ""  # Leave empty for defaults (NGINX annotation only, HAProxy uses ConfigMap)
 
   # Performance & Reliability
   proxy:
-    bodySize: "8m"
+    bodySize: "8m"  # NGINX only (HAProxy: configure via ConfigMap)
     connectTimeout: 60
     sendTimeout: 60
     readTimeout: 60
-    bufferSize: "4k"
+    bufferSize: "4k"  # NGINX only (HAProxy: configure via ConfigMap)
     buffersNumber: 4
-    nextUpstream: "error timeout"
-    nextUpstreamTries: 3
+    nextUpstream: "error timeout"  # NGINX only (HAProxy: configure via ConfigMap)
+    nextUpstreamTries: 3  # NGINX only (HAProxy: configure via ConfigMap)
 
   # Rate Limiting
   rateLimit:
@@ -148,7 +141,7 @@ ingress:
   websocket:
     enabled: false
 
-  # Canary Deployment (only enable when needed)
+  # Canary Deployment (NGINX only)
   canary:
     enabled: false
     weight: 0
@@ -174,7 +167,8 @@ ingress:
 
 ingressGRPC:
   enabled: false
-  className: nginx
+  className: haproxy
+  controllerType: haproxy  # haproxy or nginx — determines annotation format (independent of className)
 
   # GRPC-specific settings
   grpc:
@@ -222,7 +216,7 @@ ingressGRPC:
     burst: 200
     key: "$binary_remote_addr"
 
-  # Canary Deployment
+  # Canary Deployment (NGINX only)
   canary:
     enabled: false
     weight: 0
@@ -349,6 +343,14 @@ resources:
     cpu: 250m
     memory: 250Mi
 
+# Deployment strategy
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: "25%"
+    maxUnavailable: "25%"
+minReadySeconds: 0
+
 autoscaling:
   enabled: true
   type: keda
@@ -364,6 +366,8 @@ podDisruptionBudget:
 
 networkPolicy:
   enabled: false
+  defaultDeny: false
+  allowDNS: true
   policyTypes:
     - Ingress
     - Egress
@@ -398,6 +402,67 @@ configmap:
       content: |-
         key3: value3
         key4: value4
+
+# Scheduling
+topologySpreadConstraints: []
+terminationGracePeriodSeconds: 30
+dnsPolicy: ""
+dnsConfig: {}
+hostAliases: []
+priorityClassName: ""
+runtimeClassName: ""
+shareProcessNamespace: false
+
+# Extra extensibility
+extraVolumes: []
+extraVolumeMounts: []
+extraContainers: []
+extraEnvFrom: []
+extraInitContainers: []
+
+# Lifecycle hooks
+lifecycle: {}
+  # preStop:
+  #   exec:
+  #     command: ["/bin/sh", "-c", "sleep 10"]
+  # postStart:
+  #   exec:
+  #     command: ["/bin/sh", "-c", "echo started"]
+
+# Labels & Annotations
+podLabels: {}
+commonLabels: {}
+commonAnnotations: {}
+component: ""
+partOf: ""
+
+# Monitoring
+metrics:
+  serviceMonitor:
+    enabled: false
+    additionalLabels: {}
+    namespace: ""
+    endpoints:
+      - port: http
+        path: /metrics
+        interval: 30s
+        scrapeTimeout: 10s
+  podMonitor:
+    enabled: false
+    additionalLabels: {}
+    namespace: ""
+    podMetricsEndpoints:
+      - port: http
+        path: /metrics
+        interval: 30s
+
+# Vertical Pod Autoscaler
+verticalPodAutoscaler:
+  enabled: false
+  updatePolicy:
+    updateMode: "Auto"
+  resourcePolicy:
+    containerPolicies: []
 
 nodeSelector: {}
 

@@ -5,6 +5,10 @@ metadata:
   name: {{ include "cronjob.fullname" . }}
   labels:
     {{- include "cronjob.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   schedule: {{ .Values.cronjob.schedule | quote }}
   {{- if .Values.cronjob.timeZone }}
@@ -45,6 +49,9 @@ spec:
           {{- end }}
           labels:
             {{- include "cronjob.selectorLabels" . | nindent 12 }}
+            {{- with .Values.podLabels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
         spec:
           {{- with .Values.imagePullSecrets }}
           imagePullSecrets:
@@ -54,8 +61,30 @@ spec:
           securityContext:
             {{- toYaml .Values.podSecurityContext | nindent 12 }}
           restartPolicy: {{ .Values.job.restartPolicy }}
-          {{- if .Values.initContainers.enabled }}
+          terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds | default 30 }}
+          {{- if .Values.dnsPolicy }}
+          dnsPolicy: {{ .Values.dnsPolicy }}
+          {{- end }}
+          {{- with .Values.dnsConfig }}
+          dnsConfig:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.hostAliases }}
+          hostAliases:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if .Values.priorityClassName }}
+          priorityClassName: {{ .Values.priorityClassName }}
+          {{- end }}
+          {{- if .Values.runtimeClassName }}
+          runtimeClassName: {{ .Values.runtimeClassName }}
+          {{- end }}
+          {{- if .Values.shareProcessNamespace }}
+          shareProcessNamespace: {{ .Values.shareProcessNamespace }}
+          {{- end }}
+          {{- if or .Values.initContainers.enabled .Values.extraInitContainers }}
           initContainers:
+            {{- if .Values.initContainers.enabled }}
             {{- range .Values.initContainers.containers }}
             - name: {{ .name }}
               image: {{ .image }}
@@ -73,6 +102,10 @@ spec:
               volumeMounts:
                 {{- toYaml .volumeMounts | nindent 16 }}
               {{- end }}
+            {{- end }}
+            {{- end }}
+            {{- with .Values.extraInitContainers }}
+            {{- toYaml . | nindent 12 }}
             {{- end }}
           {{- end }}
           containers:
@@ -103,8 +136,11 @@ spec:
               - secretRef:
                   name: {{ include "cronjob.fullname" . }}
               {{- end }}
+              {{- with .Values.extraEnvFrom }}
+              {{- toYaml . | nindent 14 }}
               {{- end }}
-              {{- if or .Values.volumeMounts (and .Values.configmap.enabled .Values.configmap.fileData) }}
+              {{- end }}
+              {{- if or .Values.volumeMounts (and .Values.configmap.enabled .Values.configmap.fileData) .Values.extraVolumeMounts }}
               volumeMounts:
               {{- if .Values.configmap.enabled }}
               {{- if .Values.configmap.fileData }}
@@ -116,17 +152,22 @@ spec:
               {{- end }}
               {{- end }}
               {{- with .Values.volumeMounts }}
-                {{- toYaml . | nindent 16 }}
+              {{- toYaml . | nindent 14 }}
+              {{- end }}
+              {{- with .Values.extraVolumeMounts }}
+              {{- toYaml . | nindent 14 }}
               {{- end }}
               {{- end }}
-              {{- with .Values.postStart }}
+              {{- with .Values.lifecycle }}
               lifecycle:
-                postStart:
-                  {{- toYaml . | nindent 18 }}
+                {{- toYaml . | nindent 16 }}
               {{- end }}
               resources:
                 {{- toYaml .Values.resources | nindent 16 }}
-          {{- if or .Values.volumes (and .Values.configmap.enabled .Values.configmap.fileData) }}
+          {{- with .Values.extraContainers }}
+          {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if or .Values.volumes (and .Values.configmap.enabled .Values.configmap.fileData) .Values.extraVolumes }}
           volumes:
           {{- if .Values.configmap.enabled }}
           {{- if .Values.configmap.fileData }}
@@ -141,7 +182,10 @@ spec:
           {{- end }}
           {{- end }}
           {{- with .Values.volumes }}
-            {{- toYaml . | nindent 12 }}
+          {{- toYaml . | nindent 10 }}
+          {{- end }}
+          {{- with .Values.extraVolumes }}
+          {{- toYaml . | nindent 10 }}
           {{- end }}
           {{- end }}
           {{- with .Values.nodeSelector }}
@@ -154,5 +198,9 @@ spec:
           {{- end }}
           {{- with .Values.tolerations }}
           tolerations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.topologySpreadConstraints }}
+          topologySpreadConstraints:
             {{- toYaml . | nindent 12 }}
           {{- end }}

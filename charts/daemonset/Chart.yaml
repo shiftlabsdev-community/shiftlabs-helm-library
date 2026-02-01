@@ -2,7 +2,8 @@ apiVersion: v2
 name: daemonset
 description: Production-ready Helm chart for Kubernetes DaemonSets with modern best practices, security hardening, and comprehensive health checks
 type: application
-version: 2.0.0
+version: 4.0.0
+kubeVersion: ">=1.22.0-0"
 appVersion: "1.0.0"
 keywords:
   - kubernetes
@@ -49,3 +50,7 @@ annotations:
   artifacthub.io/recommendations: |
     - url: https://artifacthub.io/packages/helm/prometheus-community/kube-prometheus-stack
     - url: https://artifacthub.io/packages/helm/external-secrets-operator/external-secrets
+dependencies:
+  - name: common
+    version: "2.x.x"
+    repository: "file://../common"

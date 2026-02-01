@@ -1,15 +1,1 @@
-{{- if .Values.configmap.enabled }}
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: {{ include "statefulset.fullname" . }}
-  labels:
-    {{- include "statefulset.labels" . | nindent 4 }}
-data:
-  {{- range .Values.configmap.fileData }}
-  {{ .fileName }}: {{ .content | quote }}
-  {{- end }}
-  {{- range $key, $value := .Values.configmap.keyValues }}
-  {{ $key }}: {{ $value | quote }}
-  {{- end }}
-{{- end }}
+{{- include "common.configmap" . -}}
