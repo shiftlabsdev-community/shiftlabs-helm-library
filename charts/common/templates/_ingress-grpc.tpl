@@ -5,7 +5,7 @@ gRPC Ingress resource — Full HAProxy/NGINX support
 {{- if .Values.ingressGRPC.enabled -}}
 {{- $fullName := include "common.fullname" . -}}
 {{- $svcPort := index .Values.service.ports 0 -}}
-{{- $isHAProxy := eq .Values.ingressGRPC.className "haproxy" -}}
+{{- $isHAProxy := eq (default "nginx" .Values.ingressGRPC.controllerType) "haproxy" -}}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:

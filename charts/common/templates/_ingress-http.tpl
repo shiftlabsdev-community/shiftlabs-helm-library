@@ -5,7 +5,7 @@ HTTP Ingress resource — Full HAProxy/NGINX support
 {{- if .Values.ingress.enabled -}}
 {{- $fullName := include "common.fullname" . -}}
 {{- $svcPort := index .Values.service.ports 0 -}}
-{{- $isHAProxy := eq .Values.ingress.className "haproxy" -}}
+{{- $isHAProxy := eq (default "nginx" .Values.ingress.controllerType) "haproxy" -}}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:

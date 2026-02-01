@@ -5,3 +5,4 @@ CLAUDE.md
 # Helm dependency cache (rebuild with: helm dependency update charts/<name>)
 charts/*/charts/
 charts/*/Chart.lock
+nul

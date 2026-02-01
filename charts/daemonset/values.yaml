@@ -30,10 +30,10 @@ serviceAccount:
 
 podAnnotations: {}
 
-podSecurityContext:
-  runAsNonRoot: true
-  seccompProfile:
-    type: RuntimeDefault
+podSecurityContext: {}
+  # runAsNonRoot: true
+  # seccompProfile:
+  #   type: RuntimeDefault
 
 env: []
   # - name: ENV_VAR_NAME
@@ -44,13 +44,13 @@ env: []
   #       name: my-secret
   #       key: secret-key
 
-securityContext:
-  allowPrivilegeEscalation: false
-  readOnlyRootFilesystem: true
-  runAsNonRoot: true
-  capabilities:
-    drop:
-      - ALL
+securityContext: {}
+  # allowPrivilegeEscalation: false
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # capabilities:
+  #   drop:
+  #     - ALL
 
 service:
   type: ClusterIP
@@ -80,6 +80,7 @@ initContainers:
 ingress:
   enabled: false
   className: haproxy
+  controllerType: haproxy  # haproxy or nginx — determines annotation format (independent of className)
 
   # Security Headers - Modern best practices
   securityHeaders:
@@ -165,6 +166,7 @@ ingress:
 ingressGRPC:
   enabled: false
   className: haproxy
+  controllerType: haproxy  # haproxy or nginx — determines annotation format (independent of className)
 
   # GRPC-specific settings
   grpc:
