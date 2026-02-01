@@ -5,14 +5,19 @@ metadata:
   name: {{ include "daemonset.fullname" . }}
   labels:
     {{- include "daemonset.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   selector:
     matchLabels:
       {{- include "daemonset.selectorLabels" . | nindent 6 }}
   updateStrategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxUnavailable: 1
+    {{- toYaml .Values.updateStrategy | nindent 4 }}
+  {{- if .Values.minReadySeconds }}
+  minReadySeconds: {{ .Values.minReadySeconds }}
+  {{- end }}
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -21,6 +26,9 @@ spec:
       {{- end }}
       labels:
         {{- include "daemonset.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -29,8 +37,30 @@ spec:
       serviceAccountName: {{ include "daemonset.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
-      {{- if .Values.initContainers.enabled }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds | default 30 }}
+      {{- if .Values.dnsPolicy }}
+      dnsPolicy: {{ .Values.dnsPolicy }}
+      {{- end }}
+      {{- with .Values.dnsConfig }}
+      dnsConfig:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.hostAliases }}
+      hostAliases:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.priorityClassName }}
+      priorityClassName: {{ .Values.priorityClassName }}
+      {{- end }}
+      {{- if .Values.runtimeClassName }}
+      runtimeClassName: {{ .Values.runtimeClassName }}
+      {{- end }}
+      {{- if .Values.shareProcessNamespace }}
+      shareProcessNamespace: {{ .Values.shareProcessNamespace }}
+      {{- end }}
+      {{- if or .Values.initContainers.enabled .Values.extraInitContainers }}
       initContainers:
+        {{- if .Values.initContainers.enabled }}
         {{- range .Values.initContainers.containers }}
         - name: {{ .name }}
           image: {{ .image }}
@@ -48,6 +78,10 @@ spec:
           volumeMounts:
             {{- toYaml .volumeMounts | nindent 12 }}
           {{- end }}
+        {{- end }}
+        {{- end }}
+        {{- with .Values.extraInitContainers }}
+        {{- toYaml . | nindent 8 }}
         {{- end }}
       {{- end }}
       containers:
@@ -70,15 +104,23 @@ spec:
           - secretRef:
               name: {{ include "daemonset.fullname" . }}
           {{- end }}
+          {{- with .Values.extraEnvFrom }}
+          {{- toYaml . | nindent 10 }}
           {{- end }}
+          {{- end }}
+          {{- if or (and .Values.configmap.enabled .Values.configmap.fileData) .Values.extraVolumeMounts }}
+          volumeMounts:
           {{- if .Values.configmap.enabled }}
           {{- if .Values.configmap.fileData }}
-          volumeMounts:
           {{- range .Values.configmap.fileData }}
           - name: custom-config-volume-{{ .fileName | replace ".yaml" "" | replace ".yml" "" | replace ".json" "" | replace ".conf" "" }}
             mountPath: {{ .mountPath }}/{{ .fileName }}
             subPath: {{ .fileName }}
           {{- end }}
+          {{- end }}
+          {{- end }}
+          {{- with .Values.extraVolumeMounts }}
+          {{- toYaml . | nindent 10 }}
           {{- end }}
           {{- end }}
           ports:
@@ -87,19 +129,22 @@ spec:
               containerPort: {{ .targetPort }}
               protocol: {{ .protocol }}
             {{- end }}
-          {{- with .Values.postStart }}
+          {{- with .Values.lifecycle }}
           lifecycle:
-            postStart:
-              {{- toYaml . | nindent 14 }}
+            {{- toYaml . | nindent 12 }}
           {{- end }}
           {{- include "daemonset.probe" (dict "probe" .Values.probes.startup "probeType" "startup") | nindent 10 }}
           {{- include "daemonset.probe" (dict "probe" .Values.probes.liveness "probeType" "liveness") | nindent 10 }}
           {{- include "daemonset.probe" (dict "probe" .Values.probes.readiness "probeType" "readiness") | nindent 10 }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+        {{- with .Values.extraContainers }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- if or (and .Values.configmap.enabled .Values.configmap.fileData) .Values.extraVolumes }}
+      volumes:
       {{- if .Values.configmap.enabled }}
       {{- if .Values.configmap.fileData }}
-      volumes:
       {{- range .Values.configmap.fileData }}
       - name: custom-config-volume-{{ .fileName | replace ".yaml" "" | replace ".yml" "" | replace ".json" "" | replace ".conf" "" }}
         configMap:
@@ -108,6 +153,10 @@ spec:
           - key: {{ .fileName }}
             path: {{ .fileName }}
       {{- end }}
+      {{- end }}
+      {{- end }}
+      {{- with .Values.extraVolumes }}
+      {{- toYaml . | nindent 6 }}
       {{- end }}
       {{- end }}
       {{- with .Values.nodeSelector }}
@@ -120,5 +169,9 @@ spec:
       {{- end }}
       {{- with .Values.tolerations }}
       tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.topologySpreadConstraints }}
+      topologySpreadConstraints:
         {{- toYaml . | nindent 8 }}
       {{- end }}

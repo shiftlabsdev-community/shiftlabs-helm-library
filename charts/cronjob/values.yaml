@@ -30,12 +30,10 @@ serviceAccount:
 
 podAnnotations: {}
 
-podSecurityContext: {}
-  # runAsNonRoot: true
-  # runAsUser: 1000
-  # fsGroup: 1000
-  # seccompProfile:
-  #   type: RuntimeDefault
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
 
 env: []
   # - name: ENV_VAR_NAME
@@ -46,14 +44,13 @@ env: []
   #       name: my-secret
   #       key: secret-key
 
-securityContext: {}
-  # allowPrivilegeEscalation: false
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
-  # capabilities:
-  #   drop:
-  #     - ALL
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  capabilities:
+    drop:
+      - ALL
 
 # Service configuration (optional, usually not needed for CronJobs)
 # Only enable if you need to expose metrics or health endpoints
@@ -70,26 +67,143 @@ service:
 # Ingress configuration (optional, rarely needed for CronJobs)
 ingress:
   enabled: false
-  className: nginx
-  annotations: {}
+  className: haproxy
+
+  # Security Headers - Modern best practices
+  securityHeaders:
+    enabled: false
+    hsts: true
+    hstsMaxAge: 31536000
+    hstsIncludeSubdomains: true
+    hstsPreload: false
+    frameOptions: "SAMEORIGIN"
+    contentTypeNosniff: true
+    xssProtection: "1; mode=block"
+    referrerPolicy: "strict-origin-when-cross-origin"
+    csp: ""
+
+  # SSL/TLS Configuration
+  ssl:
+    redirect: true
+    protocols: "TLSv1.2 TLSv1.3"
+    ciphers: ""
+
+  # Performance & Reliability
+  proxy:
+    bodySize: "8m"
+    connectTimeout: 60
+    sendTimeout: 60
+    readTimeout: 60
+    bufferSize: "4k"
+    buffersNumber: 4
+    nextUpstream: "error timeout"
+    nextUpstreamTries: 3
+
+  # Rate Limiting
+  rateLimit:
+    enabled: false
+    rps: 100
+    burst: 200
+    key: "$binary_remote_addr"
+
+  # CORS (Cross-Origin Resource Sharing)
+  cors:
+    enabled: false
+    allowOrigin: "*"
+    allowMethods: "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+    allowHeaders: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization"
+    allowCredentials: true
+    maxAge: 3600
+
+  # Websocket Support
+  websocket:
+    enabled: false
+
+  # Canary Deployment (NGINX only)
+  canary:
+    enabled: false
+    weight: 0
+
+  # Custom annotations (merged with generated ones)
+  extraAnnotations: {}
+
+  # Extra labels
+  extraLabels: {}
+
   hosts:
     - host: cronjob.example.com
       paths:
         - path: /
           pathType: Prefix
-          port: 8080
+
   tls: []
 
 ingressGRPC:
   enabled: false
-  className: nginx
-  annotations: {}
+  className: haproxy
+
+  # GRPC-specific settings
+  grpc:
+    timeout: 300
+    maxMessageSize: "4m"
+    keepaliveTime: 30
+    keepaliveTimeout: 10
+    keepalivePermitWithoutCalls: false
+
+  # Security Headers
+  securityHeaders:
+    enabled: false
+    hsts: true
+    hstsMaxAge: 31536000
+    hstsIncludeSubdomains: true
+    hstsPreload: false
+    frameOptions: "SAMEORIGIN"
+    contentTypeNosniff: true
+    xssProtection: "1; mode=block"
+    referrerPolicy: "strict-origin-when-cross-origin"
+    csp: ""
+
+  # SSL/TLS Configuration
+  ssl:
+    redirect: true
+    protocols: "TLSv1.2 TLSv1.3"
+    ciphers: ""
+
+  # Performance & Reliability
+  proxy:
+    bodySize: "8m"
+    connectTimeout: 60
+    sendTimeout: 60
+    readTimeout: 60
+    bufferSize: "4k"
+    buffersNumber: 4
+    nextUpstream: "error timeout"
+    nextUpstreamTries: 3
+
+  # Rate Limiting
+  rateLimit:
+    enabled: false
+    rps: 100
+    burst: 200
+    key: "$binary_remote_addr"
+
+  # Canary Deployment (NGINX only)
+  canary:
+    enabled: false
+    weight: 0
+
+  # Custom annotations
+  extraAnnotations: {}
+
+  # Extra labels
+  extraLabels: {}
+
   hosts:
     - host: cronjob-grpc.example.com
       paths:
         - path: /
           pathType: Prefix
-          port: 50051
+
   tls: []
 
 # CronJob specific configuration
@@ -172,10 +286,6 @@ initContainers:
     #   command: ["sh"]
     #   args: ['-c', 'echo "INIT1"']
 
-postStart: []
-  # exec:
-  #   command: ["sh", "-c", "echo Hello from postStart"]
-
 resources:
   limits:
     cpu: 250m
@@ -186,6 +296,8 @@ resources:
 
 networkPolicy:
   enabled: false
+  defaultDeny: false
+  allowDNS: true
   policyTypes:
     - Ingress
     - Egress
@@ -233,6 +345,59 @@ volumes: []
   # - name: config
   #   configMap:
   #     name: my-config
+
+# Scheduling
+topologySpreadConstraints: []
+terminationGracePeriodSeconds: 30
+dnsPolicy: ""
+dnsConfig: {}
+hostAliases: []
+priorityClassName: ""
+runtimeClassName: ""
+shareProcessNamespace: false
+
+# Extra extensibility
+extraVolumes: []
+extraVolumeMounts: []
+extraContainers: []
+extraEnvFrom: []
+extraInitContainers: []
+
+# Lifecycle hooks
+lifecycle: {}
+  # preStop:
+  #   exec:
+  #     command: ["/bin/sh", "-c", "sleep 10"]
+  # postStart:
+  #   exec:
+  #     command: ["/bin/sh", "-c", "echo started"]
+
+# Labels & Annotations
+podLabels: {}
+commonLabels: {}
+commonAnnotations: {}
+component: ""
+partOf: ""
+
+# Monitoring
+metrics:
+  serviceMonitor:
+    enabled: false
+    additionalLabels: {}
+    namespace: ""
+    endpoints:
+      - port: http
+        path: /metrics
+        interval: 30s
+        scrapeTimeout: 10s
+  podMonitor:
+    enabled: false
+    additionalLabels: {}
+    namespace: ""
+    podMetricsEndpoints:
+      - port: http
+        path: /metrics
+        interval: 30s
 
 nodeSelector: {}
 
