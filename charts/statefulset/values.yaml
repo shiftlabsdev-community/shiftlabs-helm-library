@@ -81,55 +81,49 @@ initContainers:
 
 ingress:
   enabled: false
-  className: haproxy
-  controllerType: haproxy  # haproxy or nginx — determines annotation format (independent of className)
+  className: haproxy           # Kubernetes IngressClass name (any custom name)
+  controllerType: haproxy      # "haproxy" or "nginx" — annotation format (independent of className)
 
-  # Security Headers - Modern best practices
+  # ┌──────────────────────────────────────────────────────────────────┐
+  # │ FEATURE SUPPORT:  [HAProxy: ✅ | NGINX: ✅] = both supported    │
+  # │   ❌ (ConfigMap) = configure via controller ConfigMap instead    │
+  # └──────────────────────────────────────────────────────────────────┘
+
+  # Security Headers [HAProxy: ✅ | NGINX: ✅]
   securityHeaders:
     enabled: false
-    # HSTS (HTTP Strict Transport Security)
     hsts: true
-    hstsMaxAge: 31536000  # 1 year
+    hstsMaxAge: 31536000
     hstsIncludeSubdomains: true
     hstsPreload: false
-    # Frame protection
-    frameOptions: "SAMEORIGIN"  # DENY, SAMEORIGIN, or ALLOW-FROM
-    # Content type sniffing protection
+    frameOptions: "SAMEORIGIN"
     contentTypeNosniff: true
-    # XSS Protection
     xssProtection: "1; mode=block"
-    # Referrer Policy
     referrerPolicy: "strict-origin-when-cross-origin"
-    # Content Security Policy (CSP)
     csp: ""
-      # Example: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"
 
-  # SSL/TLS Configuration
   ssl:
-    redirect: true
-    protocols: "TLSv1.2 TLSv1.3"
-    ciphers: ""  # Leave empty for defaults (NGINX annotation only, HAProxy uses ConfigMap)
+    redirect: true                          # [HAProxy: ✅ | NGINX: ✅]
+    protocols: "TLSv1.2 TLSv1.3"           # [HAProxy: ❌ ConfigMap | NGINX: ✅]
+    ciphers: ""                             # [HAProxy: ❌ ConfigMap | NGINX: ✅]
 
-  # Performance & Reliability
   proxy:
-    bodySize: "8m"  # NGINX only
-    connectTimeout: 60
-    sendTimeout: 60
-    readTimeout: 60
-    bufferSize: "4k"  # NGINX only
-    buffersNumber: 4
-    nextUpstream: "error timeout"  # NGINX only
-    nextUpstreamTries: 3  # NGINX only
+    bodySize: "8m"                          # [HAProxy: ❌ ConfigMap | NGINX: ✅]
+    connectTimeout: 60                      # [HAProxy: ✅ | NGINX: ✅]
+    sendTimeout: 60                         # [HAProxy: ✅ timeout-server | NGINX: ✅]
+    readTimeout: 60                         # [HAProxy: ✅ timeout-server | NGINX: ✅]
+    bufferSize: "4k"                        # [HAProxy: ❌ ConfigMap | NGINX: ✅]
+    buffersNumber: 4                        # [HAProxy: ❌ ConfigMap | NGINX: ✅]
+    nextUpstream: "error timeout"           # [HAProxy: ❌ ConfigMap | NGINX: ✅]
+    nextUpstreamTries: 3                    # [HAProxy: ❌ ConfigMap | NGINX: ✅]
 
-  # Rate Limiting
-  rateLimit:
+  rateLimit:                                # [HAProxy: ✅ | NGINX: ✅]
     enabled: false
-    rps: 100  # Requests per second per IP
-    burst: 200  # Burst capacity
-    key: "$binary_remote_addr"  # Rate limit key
+    rps: 100
+    burst: 200                              # [HAProxy: ❌ | NGINX: ✅]
+    key: "$binary_remote_addr"
 
-  # CORS (Cross-Origin Resource Sharing)
-  cors:
+  cors:                                     # [HAProxy: ✅ | NGINX: ✅]
     enabled: false
     allowOrigin: "*"
     allowMethods: "GET, POST, PUT, DELETE, PATCH, OPTIONS"
@@ -137,21 +131,14 @@ ingress:
     allowCredentials: true
     maxAge: 3600
 
-  # Websocket Support
-  websocket:
+  websocket:                                # [HAProxy: ✅ timeout-tunnel | NGINX: ✅ websocket-svc]
     enabled: false
 
-  # Canary Deployment (NGINX only)
-  canary:
+  canary:                                   # [HAProxy: ❌ | NGINX: ✅]
     enabled: false
     weight: 0
 
-  # Custom annotations (merged with generated ones)
   extraAnnotations: {}
-    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
-    # external-dns.alpha.kubernetes.io/hostname: "app.example.com"
-
-  # Extra labels
   extraLabels: {}
 
   hosts:
@@ -167,16 +154,15 @@ ingress:
 
 ingressGRPC:
   enabled: false
-  className: haproxy
-  controllerType: haproxy  # haproxy or nginx — determines annotation format (independent of className)
+  className: haproxy           # Kubernetes IngressClass name (any custom name)
+  controllerType: haproxy      # "haproxy" or "nginx" — annotation format (independent of className)
 
-  # GRPC-specific settings
+  # [HAProxy: ✅ server-proto h2 | NGINX: ✅ backend-protocol GRPC]
   grpc:
-    timeout: 300  # seconds
-    maxMessageSize: "4m"
-    # Keepalive settings
-    keepaliveTime: 30  # seconds
-    keepaliveTimeout: 10  # seconds
+    timeout: 300               # [HAProxy: ✅ timeout-tunnel | NGINX: ✅ grpc_read/send_timeout]
+    maxMessageSize: "4m"       # [HAProxy: ❌ | NGINX: ✅ client_max_body_size]
+    keepaliveTime: 30
+    keepaliveTimeout: 10
     keepalivePermitWithoutCalls: false
 
   # Security Headers (same as HTTP ingress)
