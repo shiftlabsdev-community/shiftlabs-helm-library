@@ -2,7 +2,7 @@
 HTTP Ingress resource — Full HAProxy/NGINX support
 */}}
 {{- define "common.ingress.http" -}}
-{{- if .Values.ingress.enabled -}}
+{{- if and .Values.ingress .Values.ingress.enabled -}}
 {{- $fullName := include "common.fullname" . -}}
 {{- $svcPort := index .Values.service.ports 0 -}}
 {{- $isHAProxy := eq (default "nginx" .Values.ingress.controllerType) "haproxy" -}}

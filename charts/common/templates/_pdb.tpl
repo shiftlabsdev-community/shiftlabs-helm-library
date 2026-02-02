@@ -2,7 +2,7 @@
 PodDisruptionBudget resource
 */}}
 {{- define "common.pdb" -}}
-{{- if .Values.podDisruptionBudget.enabled }}
+{{- if and .Values.podDisruptionBudget .Values.podDisruptionBudget.enabled }}
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:

@@ -2,7 +2,7 @@
 PodMonitor resource
 */}}
 {{- define "common.podmonitor" -}}
-{{- if .Values.metrics.podMonitor.enabled }}
+{{- if and .Values.metrics .Values.metrics.podMonitor .Values.metrics.podMonitor.enabled }}
 apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:

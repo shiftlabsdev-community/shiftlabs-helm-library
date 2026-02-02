@@ -2,7 +2,7 @@
 HPA resource (native HPA + KEDA ScaledObject)
 */}}
 {{- define "common.hpa" -}}
-{{- if and .Values.autoscaling.enabled (eq .Values.autoscaling.type "native") }}
+{{- if and .Values.autoscaling .Values.autoscaling.enabled (eq .Values.autoscaling.type "native") }}
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -34,7 +34,7 @@ spec:
           averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
     {{- end }}
 {{- end }}
-{{- if and .Values.autoscaling.enabled (eq .Values.autoscaling.type "keda") }}
+{{- if and .Values.autoscaling .Values.autoscaling.enabled (eq .Values.autoscaling.type "keda") }}
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:

@@ -2,7 +2,7 @@
 VerticalPodAutoscaler resource
 */}}
 {{- define "common.vpa" -}}
-{{- if .Values.verticalPodAutoscaler.enabled }}
+{{- if and .Values.verticalPodAutoscaler .Values.verticalPodAutoscaler.enabled }}
 apiVersion: autoscaling.k8s.io/v1
 kind: VerticalPodAutoscaler
 metadata:

@@ -2,7 +2,7 @@
 gRPC Ingress resource — Full HAProxy/NGINX support
 */}}
 {{- define "common.ingress.grpc" -}}
-{{- if .Values.ingressGRPC.enabled -}}
+{{- if and .Values.ingressGRPC .Values.ingressGRPC.enabled -}}
 {{- $fullName := include "common.fullname" . -}}
 {{- $svcPort := index .Values.service.ports 0 -}}
 {{- $isHAProxy := eq (default "nginx" .Values.ingressGRPC.controllerType) "haproxy" -}}

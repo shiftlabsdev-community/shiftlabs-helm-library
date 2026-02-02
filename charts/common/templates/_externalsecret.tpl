@@ -2,7 +2,7 @@
 ExternalSecret resource
 */}}
 {{- define "common.externalsecret" -}}
-{{- if .Values.ExternalSecret.enabled -}}
+{{- if and .Values.ExternalSecret .Values.ExternalSecret.enabled -}}
 ---
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret

@@ -2,7 +2,7 @@
 NetworkPolicy resource
 */}}
 {{- define "common.networkpolicy" -}}
-{{- if .Values.networkPolicy.enabled }}
+{{- if and .Values.networkPolicy .Values.networkPolicy.enabled }}
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:

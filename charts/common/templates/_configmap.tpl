@@ -2,7 +2,7 @@
 ConfigMap resource
 */}}
 {{- define "common.configmap" -}}
-{{- if .Values.configmap.enabled }}
+{{- if and .Values.configmap .Values.configmap.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:

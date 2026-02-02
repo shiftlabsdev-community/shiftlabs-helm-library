@@ -2,7 +2,7 @@
 ServiceMonitor resource
 */}}
 {{- define "common.servicemonitor" -}}
-{{- if .Values.metrics.serviceMonitor.enabled }}
+{{- if and .Values.metrics .Values.metrics.serviceMonitor .Values.metrics.serviceMonitor.enabled }}
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
