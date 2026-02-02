@@ -2,7 +2,7 @@ apiVersion: v2
 name: statefulset
 description: Production-ready Helm chart for Kubernetes StatefulSets with persistent storage, modern best practices, security hardening, and comprehensive health checks
 type: application
-version: 4.0.0
+version: 1.3.2
 kubeVersion: ">=1.22.0-0"
 appVersion: "1.0.0"
 keywords:
@@ -56,5 +56,5 @@ annotations:
     - url: https://artifacthub.io/packages/helm/external-secrets-operator/external-secrets
 dependencies:
   - name: common
-    version: "2.x.x"
+    version: "1.x.x"
     repository: "file://../common"
