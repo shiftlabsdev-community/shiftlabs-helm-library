@@ -1,5 +1,5 @@
 1. Get the application URL by running these commands:
-{{- if .Values.ingress.enabled }}
+{{- if and .Values.ingress .Values.ingress.enabled }}
 {{- range $host := .Values.ingress.hosts }}
   {{- range .paths }}
   http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ .path }}
@@ -33,23 +33,23 @@
   - Update Strategy: {{ .Values.statefulset.updateStrategy.type }}
   kubectl get statefulset --namespace {{ .Release.Namespace }} {{ include "statefulset.fullname" . }}
 
-{{- if .Values.persistence.enabled }}
+{{- if and .Values.persistence .Values.persistence.enabled }}
 5. Persistent Volume Claims:
   kubectl get pvc --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "statefulset.name" . }}"
 {{- end }}
 
-{{- if .Values.ExternalSecret.enabled }}
+{{- if and .Values.ExternalSecret .Values.ExternalSecret.enabled }}
 6. External Secret is enabled ({{ .Values.ExternalSecret.type }}):
   - Secret store: {{ .Values.ExternalSecret.name }}
   - Verify secret: kubectl get secret {{ include "statefulset.fullname" . }} -n {{ .Release.Namespace }}
 {{- end }}
 
-{{- if .Values.networkPolicy.enabled }}
+{{- if and .Values.networkPolicy .Values.networkPolicy.enabled }}
 7. NetworkPolicy is enabled:
   - Check network policies: kubectl get networkpolicy {{ include "statefulset.fullname" . }} -n {{ .Release.Namespace }}
 {{- end }}
 
-{{- if .Values.ingressGRPC.enabled }}
+{{- if and .Values.ingressGRPC .Values.ingressGRPC.enabled }}
 gRPC Ingress:
 {{- range $host := .Values.ingressGRPC.hosts }}
   {{- range .paths }}
@@ -59,7 +59,7 @@ gRPC Ingress:
   - Controller: {{ .Values.ingressGRPC.controllerType | default "haproxy" }}
 {{- end }}
 
-{{- if .Values.configmap.enabled }}
+{{- if and .Values.configmap .Values.configmap.enabled }}
 ConfigMap:
   - Name: {{ include "statefulset.fullname" . }}
   {{- if .Values.configmap.fileData }}
@@ -70,16 +70,16 @@ ConfigMap:
   {{- end }}
 {{- end }}
 
-{{- if .Values.ingress.enabled }}
+{{- if and .Values.ingress .Values.ingress.enabled }}
 Ingress Controller: {{ .Values.ingress.controllerType | default "haproxy" }}
 {{- end }}
 
-{{- if or .Values.metrics.serviceMonitor.enabled .Values.metrics.podMonitor.enabled }}
+{{- if and .Values.metrics (or (and .Values.metrics.serviceMonitor .Values.metrics.serviceMonitor.enabled) (and .Values.metrics.podMonitor .Values.metrics.podMonitor.enabled)) }}
 Metrics:
-  {{- if .Values.metrics.serviceMonitor.enabled }}
+  {{- if and .Values.metrics.serviceMonitor .Values.metrics.serviceMonitor.enabled }}
   - ServiceMonitor: kubectl get servicemonitor {{ include "statefulset.fullname" . }} -n {{ .Release.Namespace }}
   {{- end }}
-  {{- if .Values.metrics.podMonitor.enabled }}
+  {{- if and .Values.metrics.podMonitor .Values.metrics.podMonitor.enabled }}
   - PodMonitor: kubectl get podmonitor {{ include "statefulset.fullname" . }} -n {{ .Release.Namespace }}
   {{- end }}
 {{- end }}
