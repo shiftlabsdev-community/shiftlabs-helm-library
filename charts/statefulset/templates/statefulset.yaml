@@ -11,15 +11,18 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  serviceName: {{ .Values.statefulset.serviceName | default (include "statefulset.fullname" .) }}
+  serviceName: {{ (default dict .Values.statefulset).serviceName | default (include "statefulset.fullname" .) }}
   replicas: {{ .Values.replicaCount }}
-  podManagementPolicy: {{ .Values.statefulset.podManagementPolicy }}
+  podManagementPolicy: {{ (default dict .Values.statefulset).podManagementPolicy | default "OrderedReady" }}
+  {{- if and .Values.statefulset .Values.statefulset.updateStrategy }}
   updateStrategy:
     type: {{ .Values.statefulset.updateStrategy.type }}
     {{- if eq .Values.statefulset.updateStrategy.type "RollingUpdate" }}
     rollingUpdate:
-      partition: {{ .Values.statefulset.updateStrategy.rollingUpdate.partition }}
+      partition: {{ .Values.statefulset.updateStrategy.rollingUpdate.partition | default 0 }}
     {{- end }}
+  {{- end }}
+  {{- if .Values.persistence }}
   {{- with .Values.persistence.persistentVolumeClaimRetentionPolicy }}
   persistentVolumeClaimRetentionPolicy:
     {{- toYaml . | nindent 4 }}
@@ -30,13 +33,14 @@ spec:
     start: {{ .Values.persistence.ordinals.start }}
   {{- end }}
   {{- end }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "statefulset.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       annotations:
-        {{- if .Values.configmap.enabled }}
+        {{- if and .Values.configmap .Values.configmap.enabled }}
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
         {{- end }}
         {{- with .Values.podAnnotations }}
@@ -76,9 +80,9 @@ spec:
       {{- if .Values.shareProcessNamespace }}
       shareProcessNamespace: {{ .Values.shareProcessNamespace }}
       {{- end }}
-      {{- if or .Values.initContainers.enabled .Values.extraInitContainers }}
+      {{- if or (and .Values.initContainers .Values.initContainers.enabled) .Values.extraInitContainers }}
       initContainers:
-        {{- if .Values.initContainers.enabled }}
+        {{- if and .Values.initContainers .Values.initContainers.enabled }}
         {{- range .Values.initContainers.containers }}
         - name: {{ .name }}
           image: {{ .image }}
@@ -108,17 +112,17 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- if or .Values.env .Values.configmap.enabled .Values.ExternalSecret.enabled .Values.extraEnvFrom }}
+          {{- if or .Values.env (and .Values.configmap .Values.configmap.enabled) (and .Values.ExternalSecret .Values.ExternalSecret.enabled) .Values.extraEnvFrom }}
           {{- if .Values.env }}
           env:
             {{- toYaml .Values.env | nindent 12 }}
           {{- end }}
           envFrom:
-          {{- if .Values.configmap.enabled }}
+          {{- if and .Values.configmap .Values.configmap.enabled }}
           - configMapRef:
               name: {{ include "statefulset.fullname" . }}
           {{- end }}
-          {{- if .Values.ExternalSecret.enabled }}
+          {{- if and .Values.ExternalSecret .Values.ExternalSecret.enabled }}
           - secretRef:
               name: {{ include "statefulset.fullname" . }}
           {{- end }}
@@ -126,9 +130,9 @@ spec:
           {{- toYaml . | nindent 10 }}
           {{- end }}
           {{- end }}
-          {{- if or (and .Values.configmap.enabled .Values.configmap.fileData) .Values.persistence.enabled .Values.extraVolumeMounts }}
+          {{- if or (and .Values.configmap .Values.configmap.enabled .Values.configmap.fileData) (and .Values.persistence .Values.persistence.enabled) .Values.extraVolumeMounts }}
           volumeMounts:
-          {{- if .Values.configmap.enabled }}
+          {{- if and .Values.configmap .Values.configmap.enabled }}
           {{- if .Values.configmap.fileData }}
           {{- range .Values.configmap.fileData }}
           - name: custom-config-volume-{{ .fileName | replace ".yaml" "" | replace ".yml" "" | replace ".json" "" | replace ".conf" "" }}
@@ -137,11 +141,11 @@ spec:
           {{- end }}
           {{- end }}
           {{- end }}
-          {{- if .Values.persistence.enabled }}
+          {{- if and .Values.persistence .Values.persistence.enabled }}
           - name: data
             mountPath: {{ .Values.persistence.mountPath }}
           {{- end }}
-          {{- range .Values.persistence.volumeClaimTemplates }}
+          {{- range (default dict .Values.persistence).volumeClaimTemplates }}
           - name: {{ .name }}
             mountPath: {{ .mountPath | default (printf "/%s" .name) }}
           {{- end }}
@@ -167,9 +171,9 @@ spec:
         {{- with .Values.extraContainers }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
-      {{- if or (and .Values.configmap.enabled .Values.configmap.fileData) .Values.extraVolumes }}
+      {{- if or (and .Values.configmap .Values.configmap.enabled .Values.configmap.fileData) .Values.extraVolumes }}
       volumes:
-      {{- if .Values.configmap.enabled }}
+      {{- if and .Values.configmap .Values.configmap.enabled }}
       {{- if .Values.configmap.fileData }}
       {{- range .Values.configmap.fileData }}
       - name: custom-config-volume-{{ .fileName | replace ".yaml" "" | replace ".yml" "" | replace ".json" "" | replace ".conf" "" }}
@@ -201,7 +205,7 @@ spec:
       topologySpreadConstraints:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-  {{- if .Values.persistence.enabled }}
+  {{- if and .Values.persistence .Values.persistence.enabled }}
   volumeClaimTemplates:
   - metadata:
       name: data

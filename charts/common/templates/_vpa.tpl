@@ -15,7 +15,7 @@ spec:
     kind: {{ .Values.verticalPodAutoscaler.targetKind | default "Deployment" }}
     name: {{ include "common.fullname" . }}
   updatePolicy:
-    updateMode: {{ .Values.verticalPodAutoscaler.updatePolicy.updateMode | default "Auto" }}
+    updateMode: {{ (default dict .Values.verticalPodAutoscaler.updatePolicy).updateMode | default "Auto" }}
   {{- with .Values.verticalPodAutoscaler.resourcePolicy }}
   resourcePolicy:
     {{- toYaml . | nindent 4 }}
