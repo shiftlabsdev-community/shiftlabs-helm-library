@@ -2,7 +2,7 @@ apiVersion: v2
 name: daemonset
 description: Production-ready Helm chart for Kubernetes DaemonSets with modern best practices, security hardening, and comprehensive health checks
 type: application
-version: 1.3.2
+version: 1.3.3
 kubeVersion: ">=1.22.0-0"
 appVersion: "1.0.0"
 keywords:
