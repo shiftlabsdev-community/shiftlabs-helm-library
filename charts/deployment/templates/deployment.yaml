@@ -94,12 +94,12 @@ spec:
         {{- end }}
       {{- end }}
       containers:
-        - name: {{ .Chart.Name }}
+        - name: {{ .Values.fullnameOverride | default .Values.nameOverride | default .Release.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- if or .Values.env .Values.configmap.enabled .Values.ExternalSecret.enabled .Values.extraEnvFrom }}
+          {{- if or .Values.env (and .Values.configmap .Values.configmap.enabled) (and .Values.ExternalSecret .Values.ExternalSecret.enabled) .Values.extraEnvFrom }}
           {{- if .Values.env }}
           env:
             {{- toYaml .Values.env | nindent 12 }}
