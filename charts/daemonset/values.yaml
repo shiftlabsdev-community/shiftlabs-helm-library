@@ -255,13 +255,15 @@ probes:
     successThreshold: 1  # Success once = ready
 
   # Liveness Probe - Is the application running?
-  # Should be conservative to avoid cascade failures
+  # Should be conservative to avoid cascade failures. It checks healthz (the process
+  # answers), not readyz: a database or Keycloak outage must take pods out of the
+  # Service, not restart all of them.
   liveness:
     enabled: true
     type: http
 
     http:
-      path: /api/v1/health/readyz
+      path: /api/v1/health/healthz
       port: http
       scheme: HTTP
       httpHeaders: []
